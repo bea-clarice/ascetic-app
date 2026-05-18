@@ -1,0 +1,32 @@
+# ── Python backend ───────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# ── Node / Vite frontend ──────────────────────────────
+node_modules/
+frontend/dist/
+.vite/
+*.local
+
+# ── OS ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor ────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Logs ──────────────────────────────────────────────
+*.log
+npm-debug.log*

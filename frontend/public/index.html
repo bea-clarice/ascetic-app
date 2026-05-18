@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ascetic" />
+  <meta name="description" content="Track digital distraction vs academic performance with AI predictions." />
+
+  <title>Ascetic</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+
+  <!-- Google Fonts: Syne (display) + DM Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════════════
+       DESIGN SYSTEM — ASCETIC
+       Dark, monolithic, editorial feel
+       Accent: electric citron #C8F135
+    ═══════════════════════════════════════════════ */
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #111118;
+      --card:      #16161f;
+      --border:    #1e1e2a;
+      --border2:   #2a2a3a;
+      --text:      #e8e8f0;
+      --muted:     #6b6b80;
+      --accent:    #c8f135;
+      --accent2:   #8be0f0;
+      --danger:    #ff4d6d;
+      --warn:      #ffb830;
+      --good:      #c8f135;
+      --font-d:    'Syne', sans-serif;
+      --font-b:    'DM Sans', sans-serif;
+      --radius:    16px;
+      --radius-sm: 10px;
+      --nav-h:     64px;
+      --safe-top:  env(safe-area-inset-top, 0px);
+      --safe-bot:  env(safe-area-inset-bottom, 0px);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%; width: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-b);
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Page Shell ── */
+    .page-shell {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      padding-top: calc(var(--safe-top) + 56px);
+      padding-bottom: calc(var(--nav-h) + var(--safe-bot) + 16px);
+    }
+
+    .page { display: none; }
+    .page.active { display: block; animation: fadeUp .3s ease; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Top Bar ── */
+    .topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      height: calc(var(--safe-top) + 56px);
+      padding-top: var(--safe-top);
+      background: rgba(10,10,15,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 12px;
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+
+    .topbar-inner {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-family: var(--font-d);
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    .logo span { color: var(--accent); }
+
+    .topbar-date {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    /* ── Bottom Nav ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      height: calc(var(--nav-h) + var(--safe-bot));
+      padding-bottom: var(--safe-bot);
+      background: rgba(10,10,15,0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      padding-top: 8px;
+    }
+
+    .nav-items {
+      display: flex;
+      width: 100%;
+      justify-content: space-around;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 6px 20px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-family: var(--font-b);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+      transition: color .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nav-item.active { color: var(--accent); }
+    .nav-item svg { width: 22px; height: 22px; }
+
+    .nav-pip {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0;
+      transition: opacity .2s;
+      margin-top: 2px;
+    }
+    .nav-item.active .nav-pip { opacity: 1; }
+
+    /* ── Section padding ── */
+    .px { padding-left: 20px; padding-right: 20px; }
+    .section { margin-bottom: 28px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .card-sm {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+    }
+
+    /* ── Score Ring ── */
+    .score-ring-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 20px 20px;
+    }
+
+    .ring-outer {
+      position: relative;
+      width: 180px;
+      height: 180px;
+    }
+
+    .ring-svg {
+      transform: rotate(-90deg);
+      width: 180px;
+      height: 180px;
+    }
+
+    .ring-track {
+      fill: none;
+      stroke: var(--border2);
+      stroke-width: 10;
+    }
+
+    .ring-fill {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 502;
+      stroke-dashoffset: 502;
+      transition: stroke-dashoffset 1.2s cubic-bezier(.34,1.56,.64,1), stroke .4s;
+    }
+
+    .ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring-score {
+      font-family: var(--font-d);
+      font-weight: 800;
+      font-size: 44px;
+      line-height: 1;
+      letter-spacing: -2px;
+    }
+
+    .ring-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .ring-tier {
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font-d);
+      letter-spacing: .5px;
+    }
+
+    .tier-1 { background: rgba(255,77,109,.12); color: var(--danger); border: 1px solid rgba(255,77,109,.2); }
+    .tier-2 { background: rgba(255,184,48,.10); color: var(--warn);   border: 1px solid rgba(255,184,48,.2); }
+    .tier-3 { background: rgba(200,241,53,.10); color: var(--good);   border: 1px solid rgba(200,241,53,.2); }
+
+    /* ── Nudge Card ── */
+    .nudge-card {
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin: 0 20px;
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 300;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .nudge-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+    }
+
+    .nudge-1 { background: rgba(255,77,109,.08);  border: 1px solid rgba(255,77,109,.15); }
+    .nudge-1::before { background: var(--danger); }
+    .nudge-2 { background: rgba(255,184,48,.07);  border: 1px solid rgba(255,184,48,.15); }
+    .nudge-2::before { background: var(--warn); }
+    .nudge-3 { background: rgba(200,241,53,.07);  border: 1px solid rgba(200,241,53,.15); }
+    .nudge-3::before { background: var(--good); }
+
+    /* ── Stat Row ── */
+    .stat-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 0 20px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-family: var(--font-d);
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+
+    .stat-unit {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 300;
+      margin-left: 2px;
+    }
+
+    /* ── Log Button ── */
+    .log-btn-wrap {
+      padding: 0 20px;
+    }
+
+    .log-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: #0a0a0f;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-d);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform .15s, opacity .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .log-btn:active { transform: scale(.97); opacity: .9; }
+
+    /* ── Section Header ── */
+    .sec-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      margin-bottom: 14px;
+    }
+
+    .sec-title {
+      font-family: var(--font-d);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── History List ── */
+    .history-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      gap: 14px;
+    }
+
+    .hist-dot {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .hist-dot-1 { background: rgba(255,77,109,.12); }
+    .hist-dot-2 { background: rgba(255,184,48,.10); }
+    .hist-dot-3 { background: rgba(200,241,53,.10); }
+
+    .hist-info { flex: 1; }
+    .hist-date { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+    .hist-scores { font-size: 14px; font-weight: 500; }
+
+    .hist-focus {
+      font-family: var(--font-d);
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+
+    /* ── Bar Chart ── */
+    .bar-chart {
+      padding: 0 20px;
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 100px;
+    }
+
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .bar-fill {
+      width: 100%;
+      border-radius: 4px 4px 0 0;
+      background: var(--border2);
+      min-height: 4px;
+      transition: height .6s cubic-bezier(.34,1.56,.64,1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bar-fill::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, var(--accent) 0%, rgba(200,241,53,.4) 100%);
+      opacity: 0;
+      transition: opacity .4s;
+    }
+
+    .bar-fill.has-data::after { opacity: 1; }
+
+    .bar-day { font-size: 10px; color: var(--muted); }
+
+    /* ══════════════════════════════
+       MODAL
+    ══════════════════════════════ */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0,0,0,.7);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex;
+      align-items: flex-end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s;
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      width: 100%;
+      max-height: 92dvh;
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      border-top: 1px solid var(--border2);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      transform: translateY(100%);
+      transition: transform .3s cubic-bezier(.32,0,.67,0);
+      padding-bottom: calc(24px + var(--safe-bot));
+    }
+
+    .modal-backdrop.open .modal {
+      transform: translateY(0);
+      transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+    }
+
+    .modal-handle {
+      width: 36px; height: 4px;
+      background: var(--border2);
+      border-radius: 2px;
+      margin: 14px auto 4px;
+    }
+
+    .modal-title {
+      font-family: var(--font-d);
+      font-size: 20px;
+      font-weight: 700;
+      padding: 16px 20px 20px;
+      letter-spacing: -.4px;
+    }
+
+    /* ── Form Fields ── */
+    .field-group { padding: 0 20px; margin-bottom: 20px; }
+
+    .field-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .slider-wrap { display: flex; flex-direction: column; gap: 6px; }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .slider-val {
+      font-family: var(--font-d);
+      font-size: 18px;
+      font-weight: 700;
+      min-width: 36px;
+      text-align: right;
+      letter-spacing: -.5px;
+    }
+
+    input[type=range] {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--border2);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(200,241,53,.2);
+      cursor: pointer;
+    }
+
+    input[type=range]::-moz-range-thumb {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+    }
+
+    /* select */
+    .field-select {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font-b);
+      font-size: 14px;
+      outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b6b80' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    /* number input */
+    .field-number {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font-b);
+      font-size: 16px;
+      outline: none;
+    }
+
+    .field-number:focus, .field-select:focus {
+      border-color: var(--accent);
+    }
+
+    /* chip group */
+    .chip-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 8px 16px;
+      border-radius: 99px;
+      border: 1px solid var(--border2);
+      background: var(--card);
+      color: var(--muted);
+      font-size: 13px;
+      font-family: var(--font-b);
+      cursor: pointer;
+      transition: all .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .chip.selected {
+      border-color: var(--accent);
+      background: rgba(200,241,53,.1);
+      color: var(--accent);
+    }
+
+    /* submit */
+    .modal-submit {
+      margin: 24px 20px 0;
+      width: calc(100% - 40px);
+      padding: 16px;
+      background: var(--accent);
+      color: #0a0a0f;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-d);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform .15s, opacity .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .modal-submit:active { transform: scale(.97); }
+    .modal-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* loading spinner */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(0,0,0,.3);
+      border-top-color: #0a0a0f;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ══════════════════════════════
+       STATS PAGE
+    ══════════════════════════════ */
+    .chart-wrap {
+      padding: 0 20px;
+      margin-bottom: 24px;
+    }
+
+    .dual-score {
+      display: flex;
+      gap: 12px;
+      padding: 0 20px;
+      margin-bottom: 24px;
+    }
+
+    .dual-card {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .dual-num {
+      font-family: var(--font-d);
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+
+    .dual-lbl {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    /* insight cards */
+    .insight-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .insight-icon {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      background: var(--card);
+    }
+
+    .insight-body { flex: 1; }
+    .insight-title { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+    .insight-desc  { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* ══════════════════════════════
+       PROFILE PAGE
+    ══════════════════════════════ */
+    .profile-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 20px 28px;
+      gap: 10px;
+    }
+
+    .avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-d);
+      font-size: 28px;
+      font-weight: 800;
+      color: #0a0a0f;
+    }
+
+    .profile-name {
+      font-family: var(--font-d);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -.5px;
+    }
+
+    .profile-streak {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .profile-streak strong { color: var(--accent); }
+
+    .profile-field {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .pf-label { font-size: 13px; color: var(--muted); }
+    .pf-value { font-size: 14px; font-weight: 500; }
+
+    /* save profile btn */
+    .save-btn {
+      margin: 24px 20px;
+      width: calc(100% - 40px);
+      padding: 16px;
+      background: var(--accent);
+      color: #0a0a0f;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-d);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .15s;
+    }
+
+    .save-btn:active { transform: scale(.97); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: calc(var(--nav-h) + var(--safe-bot) + 16px);
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: 99px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transition: all .3s;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 48px 32px;
+      text-align: center;
+    }
+
+    .empty-icon { font-size: 40px; }
+    .empty-title { font-family: var(--font-d); font-size: 18px; font-weight: 700; }
+    .empty-desc  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); margin: 0 20px; }
+
+    /* ── Offline banner ── */
+    #offline-banner {
+      display: none;
+      position: fixed;
+      top: calc(var(--safe-top) + 56px);
+      left: 0; right: 0;
+      z-index: 99;
+      background: rgba(255,184,48,.12);
+      border-bottom: 1px solid rgba(255,184,48,.2);
+      padding: 8px 20px;
+      font-size: 12px;
+      color: var(--warn);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">asc<span>e</span>tic</div>
+      <div class="topbar-date" id="today-date"></div>
+    </div>
+  </div>
+
+  <!-- Offline Banner -->
+  <div id="offline-banner">📡 You're offline — showing cached data</div>
+
+  <!-- ══════════ PAGES ══════════ -->
+  <div class="page-shell">
+
+    <!-- ── HOME PAGE ── -->
+    <div class="page active" id="page-home">
+
+      <!-- Score Ring -->
+      <div class="score-ring-wrap">
+        <div class="ring-outer">
+          <svg class="ring-svg" viewBox="0 0 180 180">
+            <circle class="ring-track" cx="90" cy="90" r="80" />
+            <circle class="ring-fill" id="ring-fill" cx="90" cy="90" r="80" />
+          </svg>
+          <div class="ring-center">
+            <div class="ring-score" id="ring-score">--</div>
+            <div class="ring-label">FOCUS %</div>
+          </div>
+        </div>
+        <div class="ring-tier" id="ring-tier"></div>
+      </div>
+
+      <!-- Nudge Card -->
+      <div id="nudge-wrap" style="margin-bottom:24px;"></div>
+
+      <!-- Log Button -->
+      <div class="log-btn-wrap section">
+        <button class="log-btn" id="open-log-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Log Today's Data
+        </button>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="section">
+        <div class="sec-head">
+          <span class="sec-title">Last Log</span>
+        </div>
+        <div class="stat-row" id="quick-stats">
+          <div class="stat-card">
+            <div class="stat-label">Exam Score</div>
+            <div class="stat-value" id="qs-exam">--<span class="stat-unit">/100</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Study Hours</div>
+            <div class="stat-value" id="qs-study">--<span class="stat-unit">h</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Social Media</div>
+            <div class="stat-value" id="qs-social">--<span class="stat-unit">h</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Sleep</div>
+            <div class="stat-value" id="qs-sleep">--<span class="stat-unit">h</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent History -->
+      <div class="section">
+        <div class="sec-head">
+          <span class="sec-title">Recent</span>
+        </div>
+        <div id="recent-list"></div>
+      </div>
+
+    </div><!-- /home -->
+
+    <!-- ── STATS PAGE ── -->
+    <div class="page" id="page-stats">
+
+      <div style="padding: 8px 0 0;">
+        <!-- Avg Scores -->
+        <div class="section">
+          <div class="sec-head"><span class="sec-title">Averages</span></div>
+          <div class="dual-score">
+            <div class="dual-card">
+              <div class="dual-num" id="avg-focus" style="color:var(--accent)">--</div>
+              <div class="dual-lbl">Avg Focus %</div>
+            </div>
+            <div class="dual-card">
+              <div class="dual-num" id="avg-exam">--</div>
+              <div class="dual-lbl">Avg Exam Score</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bar Chart -->
+        <div class="section">
+          <div class="sec-head"><span class="sec-title">Focus (Last 7 Days)</span></div>
+          <div class="bar-chart" id="bar-chart"></div>
+        </div>
+
+        <!-- Insights -->
+        <div class="section">
+          <div class="sec-head"><span class="sec-title">Insights</span></div>
+          <div id="insights-list"></div>
+        </div>
+
+        <!-- Full Log -->
+        <div class="section">
+          <div class="sec-head"><span class="sec-title">All Logs</span></div>
+          <div id="all-logs-list"></div>
+        </div>
+      </div>
+
+    </div><!-- /stats -->
+
+    <!-- ── PROFILE PAGE ── -->
+    <div class="page" id="page-profile">
+
+      <div class="profile-header">
+        <div class="avatar" id="avatar-initials">A</div>
+        <div class="profile-name" id="profile-display-name">Student</div>
+        <div class="profile-streak">🔥 <strong id="streak-count">0</strong> day streak</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Profile Form -->
+      <div style="padding-top:8px;">
+        <div class="field-group">
+          <label class="field-label">Name</label>
+          <input type="text" class="field-number" id="pf-name" placeholder="Your name" maxlength="32" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Age</label>
+          <input type="number" class="field-number" id="pf-age" min="10" max="60" placeholder="20" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Gender</label>
+          <div class="chip-group">
+            <button class="chip" data-group="gender" data-val="Male">Male</button>
+            <button class="chip" data-group="gender" data-val="Female">Female</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Internet Quality</label>
+          <div class="chip-group">
+            <button class="chip" data-group="internet" data-val="Poor">Poor</button>
+            <button class="chip" data-group="internet" data-val="Average">Average</button>
+            <button class="chip" data-group="internet" data-val="Good">Good</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Motivation Level</label>
+          <div class="chip-group">
+            <button class="chip" data-group="motivation" data-val="Low">Low</button>
+            <button class="chip" data-group="motivation" data-val="Medium">Medium</button>
+            <button class="chip" data-group="motivation" data-val="High">High</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Mental Health Status</label>
+          <div class="chip-group">
+            <button class="chip" data-group="mental" data-val="Poor">Poor</button>
+            <button class="chip" data-group="mental" data-val="Average">Average</button>
+            <button class="chip" data-group="mental" data-val="Good">Good</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Parent Education Level</label>
+          <div class="chip-group">
+            <button class="chip" data-group="edu" data-val="HighSchool">High School</button>
+            <button class="chip" data-group="edu" data-val="Bachelors">Bachelor's</button>
+            <button class="chip" data-group="edu" data-val="Masters">Master's</button>
+            <button class="chip" data-group="edu" data-val="PhD">PhD</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Class Attendance (%)</label>
+          <div class="slider-wrap">
+            <div class="slider-row">
+              <input type="range" id="pf-attendance" min="0" max="100" step="5" value="75" />
+              <span class="slider-val" id="pf-attendance-val">75</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Assignment Completion (%)</label>
+          <div class="slider-wrap">
+            <div class="slider-row">
+              <input type="range" id="pf-assignments" min="0" max="100" step="5" value="70" />
+              <span class="slider-val" id="pf-assignments-val">70</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="save-btn" id="save-profile-btn">Save Profile</button>
+      </div>
+
+    </div><!-- /profile -->
+
+  </div><!-- /page-shell -->
+
+  <!-- ══════════ BOTTOM NAV ══════════ -->
+  <nav class="bottom-nav">
+    <div class="nav-items">
+      <button class="nav-item active" data-page="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Home
+        <div class="nav-pip"></div>
+      </button>
+      <button class="nav-item" data-page="stats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6"  y1="20" x2="6"  y2="14"/>
+        </svg>
+        Stats
+        <div class="nav-pip"></div>
+      </button>
+      <button class="nav-item" data-page="profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        Profile
+        <div class="nav-pip"></div>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ══════════ LOG MODAL ══════════ -->
+  <div class="modal-backdrop" id="log-modal">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Log Today's Habits</div>
+
+      <!-- Social Media -->
+      <div class="field-group">
+        <label class="field-label">Social Media Hours</label>
+        <div class="slider-row">
+          <input type="range" id="f-social" min="0" max="16" step="0.5" value="3" />
+          <span class="slider-val" id="f-social-val">3</span>
+        </div>
+      </div>
+
+      <!-- Streaming -->
+      <div class="field-group">
+        <label class="field-label">Streaming Hours (Netflix, YouTube…)</label>
+        <div class="slider-row">
+          <input type="range" id="f-streaming" min="0" max="12" step="0.5" value="2" />
+          <span class="slider-val" id="f-streaming-val">2</span>
+        </div>
+      </div>
+
+      <!-- Gaming -->
+      <div class="field-group">
+        <label class="field-label">Gaming Hours</label>
+        <div class="slider-row">
+          <input type="range" id="f-gaming" min="0" max="12" step="0.5" value="0" />
+          <span class="slider-val" id="f-gaming-val">0</span>
+        </div>
+      </div>
+
+      <!-- Smartphone -->
+      <div class="field-group">
+        <label class="field-label">Total Smartphone Usage Hours</label>
+        <div class="slider-row">
+          <input type="range" id="f-smartphone" min="0" max="20" step="0.5" value="4" />
+          <span class="slider-val" id="f-smartphone-val">4</span>
+        </div>
+      </div>
+
+      <!-- Study -->
+      <div class="field-group">
+        <label class="field-label">Study Hours</label>
+        <div class="slider-row">
+          <input type="range" id="f-study" min="0" max="16" step="0.5" value="4" />
+          <span class="slider-val" id="f-study-val">4</span>
+        </div>
+      </div>
+
+      <!-- Sleep -->
+      <div class="field-group">
+        <label class="field-label">Sleep Hours</label>
+        <div class="slider-row">
+          <input type="range" id="f-sleep" min="0" max="14" step="0.5" value="7" />
+          <span class="slider-val" id="f-sleep-val">7</span>
+        </div>
+      </div>
+
+      <!-- Exercise -->
+      <div class="field-group">
+        <label class="field-label">Exercise Hours</label>
+        <div class="slider-row">
+          <input type="range" id="f-exercise" min="0" max="6" step="0.5" value="0" />
+          <span class="slider-val" id="f-exercise-val">0</span>
+        </div>
+      </div>
+
+      <!-- Caffeine -->
+      <div class="field-group">
+        <label class="field-label">Caffeine Cups</label>
+        <div class="slider-row">
+          <input type="range" id="f-caffeine" min="0" max="10" step="1" value="1" />
+          <span class="slider-val" id="f-caffeine-val">1</span>
+        </div>
+      </div>
+
+      <button class="modal-submit" id="predict-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Get AI Prediction
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+</div><!-- /app -->
+
+<!-- ══════════ JS MODULES ══════════ -->
+<!--
+  Development (python3 -m http.server from frontend/public/):
+    Change src to: ../src/app.js
+
+  Firebase Hosting deployment:
+    Run `npm run build` and deploy the dist/ folder, OR
+    copy src/ next to public/ and use the path below.
+
+  For direct Firebase Hosting of the public/ folder only,
+  the inline version of app.js is embedded below.
+-->
+<script type="module">
+/*
+ * Ascetic PWA — Inline Runtime (Firebase Hosting compatible)
+ * All Firebase SDK imports use CDN — no bundler needed.
+ */
+import { initializeApp }   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const API_BASE = 'https://ascetic-app.onrender.com';
+
+const firebaseConfig = {
+  apiKey:            'AIzaSyBBo67fMWRHIbvCptdmo5WrzREMmq1wHbI',
+  authDomain:        'ascetic-app-ai.firebaseapp.com',
+  projectId:         'ascetic-app-ai',
+  storageBucket:     'ascetic-app-ai.firebasestorage.app',
+  messagingSenderId: '660532686250',
+  appId:             '1:660532686250:web:9d7d0cc7f37dbfeb4e4fd3',
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db    = getFirestore(fbApp);
+
+// ── LOCAL STORAGE ────────────────────────────────────────────────────────────
+const LS = {
+  get: (k, fb=null) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):fb; } catch{return fb;} },
+  set: (k, v)       => { try { localStorage.setItem(k, JSON.stringify(v)); } catch{} },
+};
+const KEYS = { profile:'ascetic_profile', logs:'ascetic_logs', lastResult:'ascetic_last_result' };
+
+const DEFAULT_PROFILE = {
+  name:'Student', age:20, gender:'Male', internetQuality:'Average',
+  motivationLevel:'Medium', mentalHealth:'Average', parentEducation:'Bachelors',
+  attendance:75, assignments:70,
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let profile    = LS.get(KEYS.profile,    DEFAULT_PROFILE);
+let logs       = LS.get(KEYS.logs,       []);
+let lastResult = LS.get(KEYS.lastResult, null);
+let isOnline   = navigator.onLine;
+
+// ── DOM ───────────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+const TIER_COLORS = { 1:'var(--danger)', 2:'var(--warn)', 3:'var(--good)' };
+const TIER_ICONS  = { 1:'🚨', 2:'⚠️', 3:'✅' };
+const TIER_LABELS = { 1:'Digital Detox', 2:'Warning', 3:'Excellent Alignment' };
+
+// ── SERVICE WORKER ────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+}
+
+// ── ONLINE/OFFLINE ────────────────────────────────────────────────────────────
+window.addEventListener('online',  () => { isOnline=true;  $('offline-banner').style.display='none';  syncFromFirestore(); });
+window.addEventListener('offline', () => { isOnline=false; $('offline-banner').style.display='block'; });
+if (!isOnline) $('offline-banner').style.display = 'block';
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+const toastEl = $('toast');
+function showToast(msg, ms=2600) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastEl._t);
+  toastEl._t = setTimeout(() => toastEl.classList.remove('show'), ms);
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function fmtDate(ts) {
+  return new Date(ts).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+function calcStreak(logs) {
+  if (!logs.length) return 0;
+  const sorted = [...logs].sort((a,b)=>b.ts-a.ts);
+  let streak=0, prev=new Date(); prev.setHours(0,0,0,0);
+  for (const log of sorted) {
+    const d=new Date(log.ts); d.setHours(0,0,0,0);
+    if (Math.round((prev-d)/86400000)<=1) { streak++; prev=d; } else break;
+  }
+  return streak;
+}
+
+// ── DATE LABEL ────────────────────────────────────────────────────────────────
+$('today-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+const pages    = document.querySelectorAll('.page');
+const navItems = document.querySelectorAll('.nav-item');
+
+function navigate(page) {
+  pages.forEach(p=>p.classList.remove('active'));
+  navItems.forEach(n=>n.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  if (page==='stats')   renderStats();
+  if (page==='profile') renderProfile();
+}
+navItems.forEach(btn => btn.addEventListener('click', ()=>navigate(btn.dataset.page)));
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+const logModal = $('log-modal');
+$('open-log-btn').addEventListener('click', openModal);
+function openModal()  { logModal.classList.add('open');    document.body.style.overflow='hidden'; }
+function closeModal() { logModal.classList.remove('open'); document.body.style.overflow=''; }
+logModal.addEventListener('click', e => { if(e.target===logModal) closeModal(); });
+
+// Slider sync
+[['f-social','f-social-val'],['f-streaming','f-streaming-val'],['f-gaming','f-gaming-val'],
+ ['f-smartphone','f-smartphone-val'],['f-study','f-study-val'],['f-sleep','f-sleep-val'],
+ ['f-exercise','f-exercise-val'],['f-caffeine','f-caffeine-val']].forEach(([s,v])=>{
+  $(s).addEventListener('input',()=>{$(v).textContent=$(s).value;});
+});
+$('pf-attendance').addEventListener('input',()=>{$('pf-attendance-val').textContent=$('pf-attendance').value;});
+$('pf-assignments').addEventListener('input',()=>{$('pf-assignments-val').textContent=$('pf-assignments').value;});
+
+// Chips
+document.querySelectorAll('.chip').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll(`[data-group="${btn.dataset.group}"]`).forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+  });
+});
+function setChip(group,val){
+  document.querySelectorAll(`[data-group="${group}"]`).forEach(b=>b.classList.toggle('selected',b.dataset.val===val));
+}
+function getChip(group){ const s=document.querySelector(`[data-group="${group}"].selected`); return s?s.dataset.val:null; }
+
+// ── API CALL ──────────────────────────────────────────────────────────────────
+async function callPredict(form) {
+  const body = {
+    social_media_hours:form.social, streaming_hours:form.streaming,
+    gaming_hours:form.gaming, smartphone_usage_hours:form.smartphone,
+    study_hours_per_day:form.study, sleep_hours:form.sleep,
+    exercise_hours:form.exercise, caffeine_intake_cups:form.caffeine,
+    class_attendance_percent:     profile.attendance      ?? 75,
+    assignment_completion_percent:profile.assignments     ?? 70,
+    age:                          profile.age             ?? 20,
+    gender:                       profile.gender          ?? 'Male',
+    internet_quality:             profile.internetQuality ?? 'Average',
+    motivation_level:             profile.motivationLevel ?? 'Medium',
+    mental_health_status:         profile.mentalHealth    ?? 'Average',
+    parent_education_level:       profile.parentEducation ?? 'Bachelors',
+  };
+  const res = await fetch(`${API_BASE}/predict`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.detail||`API error ${res.status}`); }
+  return res.json();
+}
+
+function heuristicPredict(form) {
+  const dist=form.social+form.streaming+form.gaming;
+  const focus=Math.round(Math.max(0,Math.min(100,(form.study*8+form.sleep*4-dist*5)/2+40)));
+  const tier=focus<=30?1:focus<=59?2:3;
+  return {focus_score:focus,exam_score:Math.min(100,Math.max(0,Math.round(focus*0.9+10))),
+    tier,tier_label:TIER_LABELS[tier],nudge:'📡 Offline mode — estimated score. Will sync when online.'};
+}
+
+// ── SUBMIT ────────────────────────────────────────────────────────────────────
+const predictBtn=$('predict-btn');
+predictBtn.addEventListener('click', async()=>{
+  const form={
+    social:parseFloat($('f-social').value),   streaming:parseFloat($('f-streaming').value),
+    gaming:parseFloat($('f-gaming').value),   smartphone:parseFloat($('f-smartphone').value),
+    study:parseFloat($('f-study').value),     sleep:parseFloat($('f-sleep').value),
+    exercise:parseFloat($('f-exercise').value),caffeine:parseFloat($('f-caffeine').value),
+  };
+  predictBtn.disabled=true;
+  predictBtn.innerHTML=`<div class="spinner"></div>&nbsp;Predicting…`;
+  try {
+    const result = isOnline ? await callPredict(form) : heuristicPredict(form);
+    const entry={ts:Date.now(),date:new Date().toISOString().slice(0,10),form,result};
+    logs.unshift(entry); if(logs.length>90) logs=logs.slice(0,90);
+    LS.set(KEYS.logs,logs); LS.set(KEYS.lastResult,entry); lastResult=entry;
+    if (isOnline) {
+      addDoc(collection(db,'logs'),{...entry,serverTs:serverTimestamp()}).catch(e=>console.warn('Firestore:',e.message));
+    }
+    closeModal(); renderHome(); showToast('✓ Prediction saved!');
+  } catch(err) {
+    showToast(`❌ ${err.message}`); console.error(err);
+  } finally {
+    predictBtn.disabled=false;
+    predictBtn.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Get AI Prediction`;
+  }
+});
+
+// ── RENDER HOME ───────────────────────────────────────────────────────────────
+function renderHome(){
+  const ringFill  = $('ring-fill');
+  const ringScore = $('ring-score');
+  const ringTier  = $('ring-tier');
+  const nudgeWrap = $('nudge-wrap');
+
+  if (lastResult){
+    const {result,form}=lastResult;
+    const circ=502, offset=circ-(result.focus_score/100)*circ;
+    ringFill.style.strokeDashoffset=offset;
+    ringFill.style.stroke=TIER_COLORS[result.tier];
+    ringScore.textContent=result.focus_score;
+    ringScore.style.color=TIER_COLORS[result.tier];
+    ringTier.innerHTML=`<div class="tier-badge tier-${result.tier}">${TIER_ICONS[result.tier]} ${TIER_LABELS[result.tier]}</div>`;
+    nudgeWrap.innerHTML=`<div class="nudge-card nudge-${result.tier}">${result.nudge}</div>`;
+    $('qs-exam').innerHTML=`${result.exam_score}<span class="stat-unit">/100</span>`;
+    $('qs-study').innerHTML=`${form.study}<span class="stat-unit">h</span>`;
+    $('qs-social').innerHTML=`${form.social}<span class="stat-unit">h</span>`;
+    $('qs-sleep').innerHTML=`${form.sleep}<span class="stat-unit">h</span>`;
+  } else {
+    ringFill.style.strokeDashoffset=502; ringScore.textContent='--'; ringScore.style.color='var(--text)';
+    ringTier.innerHTML=`<div class="tier-badge" style="background:var(--card);color:var(--muted);border:1px solid var(--border)">Log data to get your prediction</div>`;
+    nudgeWrap.innerHTML=`<div class="nudge-card nudge-3" style="text-align:center;">👋 Welcome to <strong>Ascetic</strong>. Log your daily habits to get an AI-powered focus prediction.</div>`;
+    ['qs-exam','qs-study','qs-social','qs-sleep'].forEach(id=>{ const u={'qs-exam':'/100','qs-study':'h','qs-social':'h','qs-sleep':'h'}[id]; $(id).innerHTML=`--<span class="stat-unit">${u}</span>`; });
+  }
+
+  const recentList=$('recent-list');
+  if(!logs.length){
+    recentList.innerHTML=`<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No logs yet</div><div class="empty-desc">Tap "Log Today's Data" to get your first AI prediction.</div></div>`;
+  } else {
+    recentList.innerHTML=logs.slice(0,5).map(log=>{
+      const {result,form}=log;
+      return `<div class="history-item">
+        <div class="hist-dot hist-dot-${result.tier}">${TIER_ICONS[result.tier]}</div>
+        <div class="hist-info">
+          <div class="hist-date">${fmtDate(log.ts)}</div>
+          <div class="hist-scores">Focus <strong>${result.focus_score}%</strong> · Exam <strong>${result.exam_score}/100</strong></div>
+        </div>
+        <div class="hist-focus" style="color:${TIER_COLORS[result.tier]}">${result.focus_score}%</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ── RENDER STATS ──────────────────────────────────────────────────────────────
+function renderStats(){
+  if(!logs.length){
+    $('avg-focus').textContent='--'; $('avg-exam').textContent='--';
+    $('bar-chart').innerHTML=`<div class="empty-state" style="width:100%"><div class="empty-icon">📈</div><div class="empty-desc">No data yet</div></div>`;
+    $('insights-list').innerHTML=''; $('all-logs-list').innerHTML=''; return;
+  }
+  const n=logs.length;
+  $('avg-focus').textContent=Math.round(logs.reduce((s,l)=>s+l.result.focus_score,0)/n);
+  $('avg-exam').textContent=Math.round(logs.reduce((s,l)=>s+l.result.exam_score,0)/n);
+
+  // Bar chart
+  const last7=logs.slice(0,7).reverse();
+  $('bar-chart').innerHTML=last7.map(log=>{
+    const pct=log.result.focus_score, h=Math.max(4,pct), day=new Date(log.ts).toLocaleDateString('en-US',{weekday:'short'}).slice(0,1);
+    return `<div class="bar-col"><div class="bar-fill has-data" style="height:${h}%;background:${TIER_COLORS[log.result.tier]};border-radius:4px 4px 0 0;"></div><span class="bar-day">${day}</span></div>`;
+  }).join('');
+
+  // Insights
+  const r=logs.slice(0,7);
+  const avgOf=(fn)=>r.length?r.reduce((s,l)=>s+fn(l),0)/r.length:0;
+  const avgSocial=avgOf(l=>l.form.social), avgStudy=avgOf(l=>l.form.study), avgSleep=avgOf(l=>l.form.sleep);
+  const avgGaming=avgOf(l=>l.form.gaming), avgStream=avgOf(l=>l.form.streaming);
+  const best=logs.slice(0,7).reduce((b,l)=>l.result.focus_score>b.result.focus_score?l:b,logs[0]);
+
+  const insights=[
+    {icon:'📱',title:`Avg Social Media: ${avgSocial.toFixed(1)}h/day`,desc:avgSocial>4?'High screen time. Research links 4+ hours to a 15% focus drop.':'Social media is within a healthy range. Keep it balanced.'},
+    {icon:'🎮',title:`Avg Gaming: ${avgGaming.toFixed(1)}h/day`,desc:avgGaming>3?'Heavy gaming displaces study time. 1 less hour of gaming = 1 hour of focused study.':'Gaming is balanced. Short sessions can improve cognitive flexibility.'},
+    {icon:'📺',title:`Avg Streaming: ${avgStream.toFixed(1)}h/day`,desc:avgStream>3?'Streaming fragments deep focus. Background shows are a hidden productivity killer.':'Streaming is moderate. Avoid watching right before sleep.'},
+    {icon:'📚',title:`Avg Study Time: ${avgStudy.toFixed(1)}h/day`,desc:avgStudy<3?'Study hours are low. Even 30 extra minutes/day can move your exam score significantly.':'Good study consistency. Aim for spaced sessions, not cramming.'},
+    {icon:'😴',title:`Avg Sleep: ${avgSleep.toFixed(1)}h/night`,desc:avgSleep<6?'Sleep deprivation impairs memory consolidation. Aim for 7–9 hours.':'Healthy sleep habit. Sleep is your brain\'s maintenance window.'},
+    {icon:'🏆',title:`Best Focus Day: ${best.result.focus_score}%`,desc:`On ${fmtDate(best.ts)}: ${best.form.study}h study, ${best.form.social}h social media. Replicate this template.`},
+  ];
+  $('insights-list').innerHTML=insights.map(ins=>`
+    <div class="insight-card">
+      <div class="insight-icon">${ins.icon}</div>
+      <div class="insight-body"><div class="insight-title">${ins.title}</div><div class="insight-desc">${ins.desc}</div></div>
+    </div>`).join('');
+
+  // All logs
+  $('all-logs-list').innerHTML=logs.map(log=>`
+    <div class="history-item">
+      <div class="hist-dot hist-dot-${log.result.tier}">${TIER_ICONS[log.result.tier]}</div>
+      <div class="hist-info">
+        <div class="hist-date">${fmtDate(log.ts)} · ${log.result.tier_label}</div>
+        <div class="hist-scores" style="font-size:12px;color:var(--muted)">📱${log.form.social}h · 📚${log.form.study}h · 😴${log.form.sleep}h</div>
+      </div>
+      <div style="text-align:right">
+        <div class="hist-focus" style="color:${TIER_COLORS[log.result.tier]};font-size:16px">${log.result.focus_score}%</div>
+        <div style="font-size:11px;color:var(--muted)">${log.result.exam_score}/100</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── RENDER PROFILE ────────────────────────────────────────────────────────────
+function renderProfile(){
+  const name=profile.name||'Student';
+  $('avatar-initials').textContent=name.slice(0,1).toUpperCase();
+  $('profile-display-name').textContent=name;
+  $('streak-count').textContent=calcStreak(logs);
+  $('pf-name').value=name==='Student'?'':name;
+  $('pf-age').value=profile.age??20;
+  $('pf-attendance').value=profile.attendance??75; $('pf-attendance-val').textContent=profile.attendance??75;
+  $('pf-assignments').value=profile.assignments??70; $('pf-assignments-val').textContent=profile.assignments??70;
+  setChip('gender',profile.gender??'Male');
+  setChip('internet',profile.internetQuality??'Average');
+  setChip('motivation',profile.motivationLevel??'Medium');
+  setChip('mental',profile.mentalHealth??'Average');
+  setChip('edu',profile.parentEducation??'Bachelors');
+}
+
+$('save-profile-btn').addEventListener('click',()=>{
+  profile={
+    name:$('pf-name').value.trim()||'Student',
+    age:parseInt($('pf-age').value)||20,
+    gender:getChip('gender')??profile.gender??'Male',
+    internetQuality:getChip('internet')??profile.internetQuality??'Average',
+    motivationLevel:getChip('motivation')??profile.motivationLevel??'Medium',
+    mentalHealth:getChip('mental')??profile.mentalHealth??'Average',
+    parentEducation:getChip('edu')??profile.parentEducation??'Bachelors',
+    attendance:parseInt($('pf-attendance').value)||75,
+    assignments:parseInt($('pf-assignments').value)||70,
+  };
+  LS.set(KEYS.profile,profile); renderProfile(); showToast('✓ Profile saved!');
+});
+
+// ── FIRESTORE SYNC ────────────────────────────────────────────────────────────
+async function syncFromFirestore(){
+  if(!isOnline) return;
+  try {
+    const q=query(collection(db,'logs'),orderBy('ts','desc'),limit(90));
+    const snap=await getDocs(q);
+    if(snap.empty) return;
+    const remote=snap.docs.map(d=>d.data()).filter(e=>e.form&&e.result);
+    const seen=new Set(logs.map(l=>`${l.date}_${l.ts}`));
+    const merged=[...logs];
+    for(const r of remote){ if(!seen.has(`${r.date}_${r.ts}`)) merged.push(r); }
+    merged.sort((a,b)=>b.ts-a.ts);
+    logs=merged.slice(0,90); LS.set(KEYS.logs,logs);
+    if(logs.length){ lastResult=logs[0]; LS.set(KEYS.lastResult,lastResult); }
+    renderHome();
+  } catch(e){ console.warn('[sync]',e.message); }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+renderHome();
+syncFromFirestore();
+</script>
+</body>
+</html>

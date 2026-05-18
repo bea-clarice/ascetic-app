@@ -1,0 +1,43 @@
+/*
+ * Ascetic PWA — main.css
+ * Shared design system tokens and utility classes
+ * Imported by app.js; also consumed by component templates
+ */
+
+/* ── Design Tokens ────────────────────────────────────────────── */
+:root {
+  --bg:        #0a0a0f;
+  --surface:   #111118;
+  --card:      #16161f;
+  --border:    #1e1e2a;
+  --border2:   #2a2a3a;
+  --text:      #e8e8f0;
+  --muted:     #6b6b80;
+  --accent:    #c8f135;   /* electric citron */
+  --accent2:   #8be0f0;   /* sky blue accent  */
+  --danger:    #ff4d6d;
+  --warn:      #ffb830;
+  --good:      #c8f135;
+  --font-d:    'Syne', sans-serif;
+  --font-b:    'DM Sans', sans-serif;
+  --radius:    16px;
+  --radius-sm: 10px;
+  --nav-h:     64px;
+  --safe-top:  env(safe-area-inset-top,    0px);
+  --safe-bot:  env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Tier color helpers ───────────────────────────────────────── */
+.color-tier-1 { color: var(--danger); }
+.color-tier-2 { color: var(--warn);   }
+.color-tier-3 { color: var(--good);   }
+
+.bg-tier-1 { background: rgba(255, 77,109,.10); }
+.bg-tier-2 { background: rgba(255,184, 48,.08); }
+.bg-tier-3 { background: rgba(200,241, 53,.08); }
+
+/* ── Utility ─────────────────────────────────────────────────── */
+.text-muted    { color: var(--muted); }
+.text-accent   { color: var(--accent); }
+.font-display  { font-family: var(--font-d); }
+.sr-only { position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0); }

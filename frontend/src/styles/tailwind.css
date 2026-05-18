@@ -1,0 +1,5 @@
+/* Ascetic PWA — Tailwind entry point (not used at runtime; kept for tooling reference) */
+/* All styles are defined in index.html's <style> block and styles/main.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
