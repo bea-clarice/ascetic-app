@@ -32,12 +32,20 @@ app.add_middleware(
 
 # ─── Model Loading ────────────────────────────────────────────────────────────
 
-BASE_DIR = os.path.dirname(__file__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-focus_model    = joblib.load(os.path.join(BASE_DIR, "focus_score_model.pkl"))
-exam_model     = joblib.load(os.path.join(BASE_DIR, "exam_score_model.pkl"))
-label_encoders = joblib.load(os.path.join(BASE_DIR, "label_encoders.pkl"))
-feature_cols   = joblib.load(os.path.join(BASE_DIR, "feature_cols.pkl"))
+print(f"BASE_DIR is: {BASE_DIR}", flush=True)
+print(f"Files in BASE_DIR: {os.listdir(BASE_DIR)}", flush=True)
+
+try:
+    focus_model    = joblib.load(os.path.join(BASE_DIR, "focus_score_model.pkl"))
+    exam_model     = joblib.load(os.path.join(BASE_DIR, "exam_score_model.pkl"))
+    label_encoders = joblib.load(os.path.join(BASE_DIR, "label_encoders.pkl"))
+    feature_cols   = joblib.load(os.path.join(BASE_DIR, "feature_cols.pkl"))
+    print("All models loaded successfully!", flush=True)
+except Exception as e:
+    print(f"MODEL LOAD ERROR: {e}", flush=True)
+    raise
 
 # Ordinal mapping for motivation_level (not in label_encoders — used as ordinal in training)
 MOTIVATION_MAP = {"Low": 0, "Medium": 1, "High": 2}
