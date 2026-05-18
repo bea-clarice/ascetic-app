@@ -3,6 +3,7 @@ Ascetic — Digital Distraction vs Academic Performance
 FastAPI Backend API  |  Phase 2
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -14,12 +15,63 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+# ─── Model State ──────────────────────────────────────────────────────────────
+
+models = {
+    "focus_model":    None,
+    "exam_model":     None,
+    "label_encoders": None,
+    "feature_cols":   None,
+    "loaded":         False,
+    "error":          None,
+}
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def load_models():
+    """Load all .pkl files. Called once at startup."""
+    try:
+        print(f"[startup] BASE_DIR: {BASE_DIR}", flush=True)
+        print(f"[startup] Files: {os.listdir(BASE_DIR)}", flush=True)
+
+        models["focus_model"]    = joblib.load(os.path.join(BASE_DIR, "focus_score_model.pkl"))
+        print("[startup] focus_score_model loaded", flush=True)
+
+        models["exam_model"]     = joblib.load(os.path.join(BASE_DIR, "exam_score_model.pkl"))
+        print("[startup] exam_score_model loaded", flush=True)
+
+        models["label_encoders"] = joblib.load(os.path.join(BASE_DIR, "label_encoders.pkl"))
+        print("[startup] label_encoders loaded", flush=True)
+
+        models["feature_cols"]   = joblib.load(os.path.join(BASE_DIR, "feature_cols.pkl"))
+        print("[startup] feature_cols loaded", flush=True)
+
+        models["loaded"] = True
+        print("[startup] All models loaded successfully!", flush=True)
+
+    except Exception as e:
+        models["error"] = str(e)
+        # Log the error but DO NOT raise — let the server stay alive
+        print(f"[startup] MODEL LOAD ERROR: {e}", flush=True)
+
+
+# ─── Lifespan (replaces deprecated @app.on_event) ────────────────────────────
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    load_models()   # runs once when server starts
+    yield           # server is live here
+    # (cleanup on shutdown, if needed)
+
+
 # ─── App Setup ────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="Ascetic API",
     description="ML-powered focus score & exam grade predictor for the Ascetic PWA.",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -30,31 +82,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── Model Loading ────────────────────────────────────────────────────────────
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-print(f"BASE_DIR is: {BASE_DIR}", flush=True)
-print(f"Files in BASE_DIR: {os.listdir(BASE_DIR)}", flush=True)
-
-try:
-    focus_model    = joblib.load(os.path.join(BASE_DIR, "focus_score_model.pkl"))
-    exam_model     = joblib.load(os.path.join(BASE_DIR, "exam_score_model.pkl"))
-    label_encoders = joblib.load(os.path.join(BASE_DIR, "label_encoders.pkl"))
-    feature_cols   = joblib.load(os.path.join(BASE_DIR, "feature_cols.pkl"))
-    print("All models loaded successfully!", flush=True)
-except Exception as e:
-    print(f"MODEL LOAD ERROR: {e}", flush=True)
-    raise
-
-# Ordinal mapping for motivation_level (not in label_encoders — used as ordinal in training)
+# Ordinal mapping for motivation_level
 MOTIVATION_MAP = {"Low": 0, "Medium": 1, "High": 2}
 
 
 # ─── Request / Response Schemas ───────────────────────────────────────────────
 
 class PredictRequest(BaseModel):
-    # ── Core daily inputs (user fills these in the logging modal) ──
+    # ── Core daily inputs ──
     social_media_hours:            float = Field(..., ge=0, le=24)
     streaming_hours:               float = Field(..., ge=0, le=24)
     gaming_hours:                  float = Field(..., ge=0, le=24)
@@ -62,23 +97,23 @@ class PredictRequest(BaseModel):
     sleep_hours:                   float = Field(..., ge=0, le=24)
     exercise_hours:                float = Field(..., ge=0, le=24)
 
-    # ── Secondary metrics (derived / profile-stored) ──
+    # ── Secondary metrics ──
     smartphone_usage_hours:        float = Field(default=4.0,  ge=0, le=24)
     class_attendance_percent:      float = Field(default=75.0, ge=0, le=100)
     assignment_completion_percent: float = Field(default=70.0, ge=0, le=100)
     caffeine_intake_cups:          float = Field(default=1.0,  ge=0)
 
-    # ── Profile fields (collected once, stored in localStorage) ──
+    # ── Profile fields ──
     age:                    int = Field(default=20, ge=10, le=100)
-    gender:                 str = Field(default="Male",     description="Male | Female")
-    internet_quality:       str = Field(default="Average",  description="Poor | Average | Good")
-    motivation_level:       str = Field(default="Medium",   description="Low | Medium | High")
-    mental_health_status:   str = Field(default="Average",  description="Poor | Average | Good")
+    gender:                 str = Field(default="Male",      description="Male | Female")
+    internet_quality:       str = Field(default="Average",   description="Poor | Average | Good")
+    motivation_level:       str = Field(default="Medium",    description="Low | Medium | High")
+    mental_health_status:   str = Field(default="Average",   description="Poor | Average | Good")
     parent_education_level: str = Field(default="Bachelors",
                                         description="HighSchool | Bachelors | Masters | PhD")
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "social_media_hours": 3,
                 "streaming_hours": 2,
@@ -95,9 +130,10 @@ class PredictRequest(BaseModel):
                 "internet_quality": "Good",
                 "motivation_level": "Medium",
                 "mental_health_status": "Average",
-                "parent_education_level": "Bachelors"
+                "parent_education_level": "Bachelors",
             }
         }
+    }
 
 
 class PredictResponse(BaseModel):
@@ -111,22 +147,21 @@ class PredictResponse(BaseModel):
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 VALID_OPTIONS = {
-    "gender":               ["Male", "Female"],
-    "internet_quality":     ["Poor", "Average", "Good"],
-    "mental_health_status": ["Poor", "Average", "Good"],
+    "gender":                 ["Male", "Female"],
+    "internet_quality":       ["Poor", "Average", "Good"],
+    "mental_health_status":   ["Poor", "Average", "Good"],
     "parent_education_level": ["HighSchool", "Bachelors", "Masters", "PhD"],
-    "motivation_level":     ["Low", "Medium", "High"],
+    "motivation_level":       ["Low", "Medium", "High"],
 }
 
 
 def encode_input(data: PredictRequest) -> pd.DataFrame:
-    """Validate categoricals and encode input into a model-ready DataFrame."""
     for field, choices in VALID_OPTIONS.items():
         val = getattr(data, field)
         if val not in choices:
             raise HTTPException(
                 status_code=422,
-                detail=f"Invalid value '{val}' for '{field}'. Valid options: {choices}"
+                detail=f"Invalid value '{val}' for '{field}'. Valid options: {choices}",
             )
 
     row = {
@@ -150,21 +185,15 @@ def encode_input(data: PredictRequest) -> pd.DataFrame:
 
     df = pd.DataFrame([row])
 
-    # Apply LabelEncoders for columns trained with them
-    for col, le in label_encoders.items():
+    for col, le in models["label_encoders"].items():
         df[col] = le.transform(df[col])
 
-    # Apply ordinal encoding for motivation_level
     df["motivation_level"] = df["motivation_level"].map(MOTIVATION_MAP)
-
-    # Enforce exact training column order
-    df = df[feature_cols]
-
+    df = df[models["feature_cols"]]
     return df
 
 
 def build_nudge(focus_score: float, exam_score: float, data: PredictRequest) -> str:
-    """Return a contextual nudge message based on the predicted tier."""
     if focus_score <= 30:
         return (
             f"Based on your habits, your projected exam score is {exam_score:.0f}/100. "
@@ -199,12 +228,18 @@ def root():
         "status": "online",
         "app": "Ascetic API",
         "version": "1.0.0",
+        "models_loaded": models["loaded"],
         "docs": "/docs",
     }
 
 
 @app.get("/health", tags=["Health"])
 def health():
+    if not models["loaded"]:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Models not loaded. Error: {models['error']}",
+        )
     return {"status": "healthy", "models_loaded": True}
 
 
@@ -213,22 +248,21 @@ def predict(payload: PredictRequest):
     """
     POST /predict
 
-    Accepts the user's daily lifestyle inputs and returns:
-    - focus_score  (0–100 %)
-    - exam_score   (0–100)
-    - tier         (1 = Digital Detox, 2 = Warning, 3 = Excellent Alignment)
-    - tier_label
-    - nudge        (personalised AI nudge message)
+    Returns focus_score, exam_score, tier, tier_label, and a nudge message.
     """
+    if not models["loaded"]:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Models not available. Startup error: {models['error']}",
+        )
+
     try:
         df = encode_input(payload)
 
-        focus_raw = float(focus_model.predict(df)[0])
-        exam_raw  = float(exam_model.predict(df)[0])
+        focus_raw = float(models["focus_model"].predict(df)[0])
+        exam_raw  = float(models["exam_model"].predict(df)[0])
 
-        # focus model was trained on an engineered 0–10 scale → convert to 0–100 %
         focus_score = round(float(np.clip(focus_raw * 10, 0.0, 100.0)), 1)
-        # exam model output is already on a 0–100 scale
         exam_score  = round(float(np.clip(exam_raw,       0.0, 100.0)), 1)
 
         if focus_score <= 30:
