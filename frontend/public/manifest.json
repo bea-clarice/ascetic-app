@@ -4,8 +4,8 @@
   "description": "Track digital distraction vs academic performance with AI predictions.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0f",
-  "theme_color": "#0a0a0f",
+  "background_color": "#FFFFFF",
+  "theme_color": "#A8DF8E",
   "orientation": "portrait",
   "icons": [
     {

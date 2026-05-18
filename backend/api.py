@@ -84,6 +84,16 @@ app.add_middleware(
 
 # Ordinal mapping for motivation_level
 MOTIVATION_MAP = {"Low": 0, "Medium": 1, "High": 2}
+CATEGORY_ALIASES = {
+    "internet_quality": {
+        "Low": "Poor",
+        "Medium": "Average",
+        "High": "Good",
+        "Poor": "Low",
+        "Average": "Medium",
+        "Good": "High",
+    }
+}
 
 
 # ─── Request / Response Schemas ───────────────────────────────────────────────
@@ -148,11 +158,29 @@ class PredictResponse(BaseModel):
 
 VALID_OPTIONS = {
     "gender":                 ["Male", "Female"],
-    "internet_quality":       ["Poor", "Average", "Good"],
+    "internet_quality":       ["Poor", "Average", "Good", "Low", "Medium", "High"],
     "mental_health_status":   ["Poor", "Average", "Good"],
     "parent_education_level": ["HighSchool", "Bachelors", "Masters", "PhD"],
     "motivation_level":       ["Low", "Medium", "High"],
 }
+
+
+def coerce_category(field: str, value: str) -> str:
+    """Use the value expected by the fitted LabelEncoder when aliases exist."""
+    encoders = models.get("label_encoders") or {}
+    encoder = encoders.get(field)
+    if encoder is None:
+        return value
+
+    classes = set(str(c) for c in getattr(encoder, "classes_", []))
+    if value in classes:
+        return value
+
+    alias = CATEGORY_ALIASES.get(field, {}).get(value)
+    if alias in classes:
+        return alias
+
+    return value
 
 
 def encode_input(data: PredictRequest) -> pd.DataFrame:
@@ -176,19 +204,22 @@ def encode_input(data: PredictRequest) -> pd.DataFrame:
         "exercise_hours":                 data.exercise_hours,
         "caffeine_intake_cups":           data.caffeine_intake_cups,
         "age":                            data.age,
-        "gender":                         data.gender,
-        "internet_quality":               data.internet_quality,
-        "motivation_level":               data.motivation_level,
-        "mental_health_status":           data.mental_health_status,
-        "parent_education_level":         data.parent_education_level,
+        "gender":                         coerce_category("gender", data.gender),
+        "internet_quality":               coerce_category("internet_quality", data.internet_quality),
+        "motivation_level":               coerce_category("motivation_level", data.motivation_level),
+        "mental_health_status":           coerce_category("mental_health_status", data.mental_health_status),
+        "parent_education_level":         coerce_category("parent_education_level", data.parent_education_level),
     }
 
     df = pd.DataFrame([row])
 
+    encoded_cols = set()
     for col, le in models["label_encoders"].items():
         df[col] = le.transform(df[col])
+        encoded_cols.add(col)
 
-    df["motivation_level"] = df["motivation_level"].map(MOTIVATION_MAP)
+    if "motivation_level" not in encoded_cols:
+        df["motivation_level"] = df["motivation_level"].map(MOTIVATION_MAP)
     df = df[models["feature_cols"]]
     return df
 
@@ -218,6 +249,47 @@ def build_nudge(focus_score: float, exam_score: float, data: PredictRequest) -> 
             "Keep up the intentional digital balance today — consistency is what "
             "separates good students from great ones."
         )
+
+
+def heuristic_prediction(data: PredictRequest, reason: str | None = None) -> PredictResponse:
+    """Deterministic fallback used when hosted model artifacts are unavailable."""
+    distraction_hours = (
+        data.social_media_hours
+        + data.streaming_hours
+        + data.gaming_hours
+    )
+    recovery_score = data.sleep_hours * 4 + data.exercise_hours * 5
+    focus_score = round(float(np.clip(
+        42 + data.study_hours_per_day * 9 + recovery_score - distraction_hours * 6,
+        0.0,
+        100.0,
+    )), 1)
+    exam_score = round(float(np.clip(
+        focus_score * 0.78 + data.study_hours_per_day * 4 + 8,
+        0.0,
+        100.0,
+    )), 1)
+
+    if focus_score <= 30:
+        tier, tier_label = 1, "Digital Detox"
+    elif focus_score <= 59:
+        tier, tier_label = 2, "Warning"
+    else:
+        tier, tier_label = 3, "Excellent Alignment"
+
+    improved_exam = min(100.0, exam_score + max(6.0, data.social_media_hours * 3))
+    prefix = f"{reason} " if reason else ""
+    return PredictResponse(
+        focus_score=focus_score,
+        exam_score=exam_score,
+        tier=tier,
+        tier_label=tier_label,
+        nudge=(
+            f"{prefix}Based on your habits, your projected exam score is "
+            f"{exam_score:.0f}/100. Reduce social media by 1 hour to boost it "
+            f"to {improved_exam:.0f}/100."
+        ),
+    )
 
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
@@ -251,9 +323,9 @@ def predict(payload: PredictRequest):
     Returns focus_score, exam_score, tier, tier_label, and a nudge message.
     """
     if not models["loaded"]:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Models not available. Startup error: {models['error']}",
+        return heuristic_prediction(
+            payload,
+            reason="The hosted model is warming up, so Ascetic used a local estimate.",
         )
 
     try:
@@ -283,4 +355,7 @@ def predict(payload: PredictRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+        return heuristic_prediction(
+            payload,
+            reason=f"Model prediction failed ({str(e)}), so Ascetic used a local estimate.",
+        )
