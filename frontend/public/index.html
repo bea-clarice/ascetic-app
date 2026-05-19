@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#FFFFFF" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="description" content="Track digital habits and reveal tomorrow's focus and exam projection." />
+  <meta name="description" content="Disconnect from noise, connect with purpose" />
   <title>Ascetic</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="icon" type="image/svg+xml" href="icons/ascetic-logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -48,10 +48,33 @@
       min-height: 100dvh;
       padding: calc(28px + var(--safe-top)) 20px 28px;
       display: grid;
-      align-items: center;
+      grid-template-rows: auto 1fr;
+      gap: 20px;
       background:
         linear-gradient(135deg, rgba(240,255,223,.94), rgba(255,216,223,.74)),
         var(--white);
+    }
+    .auth-header {
+      width: min(460px, 100%);
+      margin: 0 auto;
+      text-align: center;
+    }
+    .auth-header .brand {
+      margin: 0 0 10px;
+      font-size: clamp(24px, 7vw, 34px);
+      flex-direction: column;
+      justify-content: center;
+      gap: 12px;
+    }
+    .auth-header p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-weight: 600;
+    }
+    .auth-center {
+      display: grid;
+      align-items: center;
     }
     .auth-panel {
       width: min(460px, 100%);
@@ -79,6 +102,13 @@
       background: var(--green);
       color: var(--ink);
       font-weight: 800;
+      overflow: hidden;
+    }
+    .brand-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .auth-header .brand-mark {
+      width: clamp(88px, 28vw, 132px);
+      height: clamp(88px, 28vw, 132px);
+      background: transparent;
     }
     .auth-panel h1 {
       margin: 0 0 10px;
@@ -87,6 +117,33 @@
       letter-spacing: 0;
     }
     .auth-panel p { margin: 0 0 24px; color: var(--muted); line-height: 1.55; }
+    .auth-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 18px 0;
+      padding: 4px;
+      background: var(--mist);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .auth-tab {
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      min-height: 40px;
+      font-weight: 800;
+    }
+    .auth-tab.active {
+      background: var(--white);
+      color: var(--ink);
+      box-shadow: 0 4px 12px rgba(168, 223, 142, .2);
+    }
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+    .auth-form .field { margin-bottom: 12px; }
+    .auth-form .primary-btn { width: 100%; }
     .google-btn, .primary-btn, .secondary-btn, .icon-btn {
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -106,7 +163,7 @@
     .secondary-btn { background: var(--white); padding: 12px 16px; }
     .icon-btn { width: 44px; height: 44px; padding: 0; }
     .google-btn:active, .primary-btn:active, .secondary-btn:active, .icon-btn:active { transform: scale(.98); }
-    .auth-note {
+    .auth-status {
       margin-top: 16px;
       padding: 12px;
       background: var(--blush);
@@ -114,6 +171,10 @@
       color: var(--ink);
       font-size: 13px;
       line-height: 1.45;
+      display: none;
+    }
+    .auth-status.show {
+      display: block;
     }
 
     #app {
@@ -159,7 +220,7 @@
       padding-bottom: var(--safe-bot);
       border-top: 1px solid var(--line);
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
     }
     .nav-item {
       border: 0;
@@ -292,8 +353,40 @@
     .history-date { font-weight: 800; }
     .history-meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
     .history-score { font-weight: 800; font-size: 20px; }
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .breakdown-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--white);
+      padding: 14px;
+      min-height: 92px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      text-align: left;
+    }
+    .breakdown-card strong {
+      display: block;
+      font-size: 24px;
+      color: var(--ink);
+      margin-top: 8px;
+    }
+    .breakdown-card span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
 
     .chart-card { min-height: 280px; }
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
     .chart {
       height: 210px;
       display: flex;
@@ -314,12 +407,23 @@
       background: var(--green);
       min-height: 3px;
     }
+    .bar-button {
+      border: 0;
+      padding: 0;
+      background: transparent;
+      flex: 1;
+      height: 168px;
+      display: flex;
+      align-items: flex-end;
+      min-width: 18px;
+    }
     .bar.social { background: var(--rose); }
     .bar.stream { background: var(--blush); }
     .bar.game { background: var(--green); }
     .bar.study { background: var(--mist); border: 1px solid var(--green); }
     .bar.sleep { background: var(--green); }
     .bar.exercise { background: var(--rose); }
+    .bar.caffeine { background: var(--ink); }
     .day-label { text-align: center; color: var(--muted); font-size: 11px; font-weight: 800; }
     .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; color: var(--muted); font-size: 12px; }
     .legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -344,7 +448,21 @@
       outline: none;
     }
     .field input:focus, .field select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(168,223,142,.32); }
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--green);
+    }
     .readonly { background: var(--mist) !important; color: var(--muted) !important; }
+    .range-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .range-value { color: var(--ink); }
     .stepper {
       display: grid;
       grid-template-columns: 44px 1fr 44px;
@@ -377,6 +495,52 @@
       align-items: center;
       font-weight: 700;
       background: var(--white);
+    }
+    .sex-button {
+      flex: 1;
+      min-width: 120px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--white);
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 800;
+    }
+    .sex-button.active {
+      background: var(--mist);
+      border-color: var(--green);
+    }
+    .sex-button svg { width: 20px; height: 20px; }
+    .profile-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .streak-calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .calendar-cell {
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--white);
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .calendar-cell.logged {
+      background: var(--green);
+      color: var(--ink);
+      border-color: var(--green);
+    }
+    .calendar-cell.selected {
+      outline: 3px solid var(--rose);
     }
     .switch-row {
       display: flex;
@@ -486,32 +650,81 @@
       .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .topbar-meta span { display: none; }
       .auth-panel { padding: 22px; }
+      .auth-screen { align-items: start; padding-top: calc(18px + var(--safe-top)); }
       .shell { padding: 16px; }
       .inline-fields { grid-template-columns: 1fr; }
+      .category-grid { grid-template-columns: 1fr; }
+      .breakdown-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
 <body>
   <section class="auth-screen" id="auth-screen">
-    <div class="auth-panel">
-      <div class="brand"><span class="brand-mark">A</span><span>Ascetic</span></div>
-      <h1>Login or sign up with Google.</h1>
-      <button class="google-btn" id="google-signin">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path fill="#FFAAB8" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-          <path fill="#A8DF8E" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-          <path fill="#FFD8DF" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z"/>
-          <path fill="#FFAAB8" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.31 9.14 5.38 12 5.38z"/>
-        </svg>
-        Sign in with Google
-      </button>
-      <div class="auth-note" id="auth-note">No password is required. Your first name, last name, and email are read from your Google profile.</div>
+    <div class="auth-header">
+      <div class="brand"><span class="brand-mark"><img src="icons/ascetic-logo.svg" alt="" /></span><span>Ascetic</span></div>
+      <p>Disconnect from noise, connect with purpose</p>
+    </div>
+    <div class="auth-center">
+      <div class="auth-panel">
+        <h1>Welcome back.</h1>
+        <p>Use Google, or log in with your Ascetic email and password.</p>
+        <button class="google-btn" id="google-signin">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#FFAAB8" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#A8DF8E" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FFD8DF" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z"/>
+            <path fill="#FFAAB8" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.31 9.14 5.38 12 5.38z"/>
+          </svg>
+          Sign in with Google
+        </button>
+
+        <div class="auth-tabs" role="tablist" aria-label="Email authentication">
+          <button class="auth-tab active" type="button" data-auth-tab="login">Login</button>
+          <button class="auth-tab" type="button" data-auth-tab="signup">Sign up</button>
+        </div>
+
+        <form class="auth-form active" id="login-form">
+          <div class="field">
+            <label for="login-email">Email</label>
+            <input id="login-email" type="email" autocomplete="email" required />
+          </div>
+          <div class="field">
+            <label for="login-password">Password</label>
+            <input id="login-password" type="password" autocomplete="current-password" required />
+          </div>
+          <button class="primary-btn" id="login-submit" type="submit">Login</button>
+        </form>
+
+        <form class="auth-form" id="signup-form">
+          <div class="inline-fields">
+            <div class="field">
+              <label for="signup-first">First Name</label>
+              <input id="signup-first" autocomplete="given-name" required />
+            </div>
+            <div class="field">
+              <label for="signup-last">Last Name</label>
+              <input id="signup-last" autocomplete="family-name" required />
+            </div>
+          </div>
+          <div class="field">
+            <label for="signup-email">Email</label>
+            <input id="signup-email" type="email" autocomplete="email" required />
+          </div>
+          <div class="field">
+            <label for="signup-password">Password</label>
+            <input id="signup-password" type="password" autocomplete="new-password" required />
+          </div>
+          <button class="primary-btn" id="signup-submit" type="submit">Sign up</button>
+        </form>
+
+        <div class="auth-status" id="auth-status" role="status" aria-live="polite"></div>
+      </div>
     </div>
   </section>
 
   <div id="app" class="hidden">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">A</span><span>Ascetic</span></div>
+      <div class="brand"><span class="brand-mark"><img src="icons/ascetic-logo.svg" alt="" /></span><span>Ascetic</span></div>
       <div class="topbar-meta"><span id="today-date"></span><div class="avatar" id="top-avatar">A</div></div>
     </header>
 
@@ -523,11 +736,10 @@
           <div class="grid hero-grid section">
             <div class="card soft" id="home-summary">
               <p class="eyebrow">Tomorrow's readiness</p>
-              <h1 id="home-title">No data recorded for yesterday.</h1>
-              <p class="desc" id="home-message">Please log your metrics to reveal tomorrow's focus and exam projections.</p>
+              <h1 id="home-title">No data recorded for today.</h1>
+              <p class="desc" id="home-message">Please log your metrics to reveal tomorrow's focus and passing projections.</p>
               <div class="hero-actions">
                 <button class="primary-btn" id="open-log-btn">Log Screen-Time</button>
-                <button class="secondary-btn" id="profile-setup-btn">Edit Profile</button>
               </div>
             </div>
             <div class="card radial">
@@ -546,14 +758,14 @@
 
           <div class="grid metric-grid section">
             <div class="card metric"><span class="metric-label">Predicted Focus</span><span class="metric-value blurred" id="focus-metric">--%</span></div>
-            <div class="card metric"><span class="metric-label">Projected Exam</span><span class="metric-value blurred" id="exam-metric">--/100</span></div>
+            <div class="card metric"><span class="metric-label">Projected Passing Rate</span><span class="metric-value blurred" id="exam-metric">--%</span></div>
             <div class="card metric"><span class="metric-label">Study Hours</span><span class="metric-value blurred" id="study-metric">--h</span></div>
             <div class="card metric"><span class="metric-label">Sleep Hours</span><span class="metric-value blurred" id="sleep-metric">--h</span></div>
           </div>
 
           <div class="card section" id="nudge-card">
             <p class="eyebrow">AI nudge</p>
-            <p class="desc">No data recorded for yesterday. Please log your metrics to reveal tomorrow's focus and exam projections.</p>
+            <p class="desc">No data recorded for today. Please log your metrics to reveal tomorrow's focus and passing projections.</p>
           </div>
 
           <div class="card">
@@ -565,37 +777,26 @@
 
       <section class="page" id="page-stats">
         <div class="shell">
-          <div class="grid chart-grid section">
-            <div class="card chart-card">
-              <p class="eyebrow">Distraction and work</p>
-              <h2>Last 7 days</h2>
-              <div class="chart" id="distraction-chart"></div>
-              <div class="legend">
-                <span><i class="swatch" style="background:var(--rose)"></i>Social</span>
-                <span><i class="swatch" style="background:var(--blush)"></i>Streaming</span>
-                <span><i class="swatch" style="background:var(--green)"></i>Gaming</span>
-                <span><i class="swatch" style="background:var(--mist)"></i>Study</span>
-              </div>
-            </div>
-            <div class="card chart-card">
-              <p class="eyebrow">Health and reset</p>
-              <h2>Sleep and exercise</h2>
-              <div class="chart" id="health-chart"></div>
-              <div class="legend">
-                <span><i class="swatch" style="background:var(--green)"></i>Sleep</span>
-                <span><i class="swatch" style="background:var(--rose)"></i>Exercise</span>
-              </div>
-            </div>
-          </div>
-          <div class="grid metric-grid section">
-            <div class="card metric"><span class="metric-label">Average Focus</span><span class="metric-value" id="avg-focus">--%</span></div>
-            <div class="card metric"><span class="metric-label">Average Exam</span><span class="metric-value" id="avg-exam">--/100</span></div>
-            <div class="card metric"><span class="metric-label">Logged Days</span><span class="metric-value" id="log-count">0</span></div>
-            <div class="card metric"><span class="metric-label">Best Focus</span><span class="metric-value" id="best-focus">--%</span></div>
-          </div>
+          <div class="category-grid section" id="category-charts"></div>
           <div class="card">
             <p class="eyebrow">All logs</p>
             <div class="history-list" id="all-logs-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-streak">
+        <div class="shell">
+          <div class="card section">
+            <p class="eyebrow">Daily streak</p>
+            <h2 id="streak-title">0-day streak</h2>
+            <p class="desc" id="streak-message">Log your activities daily to build momentum.</p>
+            <button class="primary-btn" type="button" id="streak-focus-btn" style="margin-top:16px">Open Focus Time</button>
+            <div class="streak-calendar" id="streak-calendar"></div>
+          </div>
+          <div class="card" id="streak-detail">
+            <p class="eyebrow">Logged day</p>
+            <p class="desc">Click a highlighted day to view the data for that date.</p>
           </div>
         </div>
       </section>
@@ -604,29 +805,34 @@
         <div class="shell">
           <div class="grid profile-grid">
             <form class="card" id="profile-form">
-              <p class="eyebrow">Profile setup</p>
-              <h2>Context for the model</h2>
-              <p class="desc">Identity fields are read-only from Google. Habit context is saved locally for daily predictions.</p>
+              <p class="eyebrow">Profile</p>
+              <h2 id="profile-heading">Your account</h2>
               <div class="inline-fields" style="margin-top:18px">
-                <div class="field"><label for="pf-first">First Name</label><input class="readonly" id="pf-first" readonly /></div>
-                <div class="field"><label for="pf-last">Last Name</label><input class="readonly" id="pf-last" readonly /></div>
+                <div class="field"><label for="pf-first">First Name</label><input class="readonly" id="pf-first" disabled /></div>
+                <div class="field"><label for="pf-last">Last Name</label><input class="readonly" id="pf-last" disabled /></div>
               </div>
-              <div class="field"><label for="pf-email">Email</label><input class="readonly" id="pf-email" readonly /></div>
+              <div class="field"><label for="pf-email">Email</label><input class="readonly" id="pf-email" disabled /></div>
               <div class="inline-fields">
-                <div class="field"><label for="pf-dob">Date of Birth</label><input id="pf-dob" type="date" /></div>
-                <div class="field"><label for="pf-age">Age</label><input class="readonly" id="pf-age" readonly /></div>
+                <div class="field"><label for="pf-dob">Date of Birth</label><input id="pf-dob" type="date" disabled /></div>
+                <div class="field"><label for="pf-age">Age</label><input class="readonly" id="pf-age" disabled /></div>
               </div>
               <div class="field">
                 <div class="field-title">Sex</div>
                 <div class="radio-row">
-                  <label class="radio-pill"><input type="radio" name="sex" value="Male" /> Male</label>
-                  <label class="radio-pill"><input type="radio" name="sex" value="Female" /> Female</label>
+                  <button class="sex-button" type="button" data-sex="Male" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="14" r="5"/><path d="M14 10l6-6"/><path d="M15 4h5v5"/></svg>
+                    Male
+                  </button>
+                  <button class="sex-button" type="button" data-sex="Female" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="5"/><path d="M12 14v7"/><path d="M9 18h6"/></svg>
+                    Female
+                  </button>
                 </div>
               </div>
               <div class="inline-fields">
                 <div class="field">
                   <label for="pf-occupation">Occupation</label>
-                  <select id="pf-occupation">
+                  <select id="pf-occupation" disabled>
                     <option>Student</option>
                     <option>Freelancer</option>
                     <option>Employee</option>
@@ -635,17 +841,49 @@
                 </div>
                 <div class="field">
                   <label for="pf-internet">Internet Quality</label>
-                  <select id="pf-internet">
+                  <select id="pf-internet" disabled>
                     <option>Low</option>
                     <option>Medium</option>
                     <option>High</option>
                   </select>
                 </div>
               </div>
-              <div class="field hidden" id="occupation-other-wrap"><label for="pf-occupation-other">Other Occupation</label><input id="pf-occupation-other" /></div>
-              <div class="hero-actions">
-                <button class="primary-btn" type="submit">Edit Profile</button>
-                <button class="secondary-btn" type="button" id="profile-back-btn">Back</button>
+              <div class="field hidden" id="occupation-other-wrap"><label for="pf-occupation-other">Other Occupation</label><input id="pf-occupation-other" disabled /></div>
+              <div class="inline-fields">
+                <div class="field">
+                  <label for="pf-motivation">Motivation Level</label>
+                  <select id="pf-motivation" disabled>
+                    <option>Low</option>
+                    <option>Medium</option>
+                    <option>High</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="pf-mental">Mental Health Status</label>
+                  <select id="pf-mental" disabled>
+                    <option>Poor</option>
+                    <option>Average</option>
+                    <option>Good</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label for="pf-parent-education">Parent Education Level</label>
+                <select id="pf-parent-education" disabled>
+                  <option value="HighSchool">High School</option>
+                  <option value="Bachelors">Bachelor's</option>
+                  <option value="Masters">Master's</option>
+                  <option value="PhD">PhD</option>
+                </select>
+              </div>
+              <div class="field" style="margin-top:16px"><label for="current-password">Current Password</label><input id="current-password" type="password" autocomplete="current-password" /></div>
+              <div class="field"><label for="new-password">New Password</label><input id="new-password" type="password" autocomplete="new-password" /></div>
+              <button class="secondary-btn" id="update-password-btn" type="button" style="width:100%">Edit Password</button>
+              <div class="profile-actions">
+                <button class="primary-btn" type="button" id="edit-profile-btn">Edit Profile</button>
+                <button class="primary-btn hidden" type="submit" id="save-profile-btn">Save Profile</button>
+                <button class="secondary-btn hidden" type="button" id="profile-back-btn">Back</button>
+                <button class="secondary-btn" id="logout-btn" type="button">Logout</button>
               </div>
             </form>
 
@@ -657,10 +895,6 @@
               <div class="switch-row"><span>Vibration feedback</span><label class="switch"><input id="pref-vibrate" type="checkbox" /><span class="slider"></span></label></div>
               <div class="field" style="margin-top:16px"><label for="pref-reminder">Nightly reminder</label><input id="pref-reminder" type="time" value="22:00" /></div>
               <p class="desc">The app checks reminder timing while open and tracks a 55-minute reset interval locally.</p>
-              <div class="hero-actions">
-                <button class="secondary-btn" id="save-prefs-btn" type="button">Save Controls</button>
-                <button class="secondary-btn" id="logout-btn" type="button">Logout</button>
-              </div>
             </div>
           </div>
         </div>
@@ -675,6 +909,10 @@
       <button class="nav-item" data-page="stats" aria-label="Statistics">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M13 16V6"/><path d="M18 16v-4"/></svg>
         Stats
+      </button>
+      <button class="nav-item" data-page="streak" aria-label="Streak">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="m9 16 2 2 4-5"/></svg>
+        Streak
       </button>
       <button class="nav-item" data-page="profile" aria-label="Profile">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.6-4 4.2-6 8-6s6.4 2 8 6"/></svg>
@@ -697,10 +935,27 @@
         </div>
         <div class="warning-text" id="log-warning">Incomplete data fields detected. Enter '0' if you did not utilize any hours for that category.</div>
         <form id="log-form">
-          <div class="field"><label for="log-date">Date</label><input class="readonly" id="log-date" readonly /></div>
+          <div class="field"><label for="log-date">Date</label><input class="readonly" id="log-date" type="date" disabled required /></div>
           <div class="grid inline-fields" id="metric-fields"></div>
           <button class="primary-btn" id="predict-btn" type="submit" style="width:100%; margin-top:6px">Log</button>
         </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="modal-backdrop" id="category-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="category-title">
+      <div class="modal-inner">
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow" id="category-date">Daily insight</p>
+            <h2 id="category-title">Habit detail</h2>
+          </div>
+          <button class="icon-btn" id="close-category-btn" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+        <p class="desc" id="category-suggestion"></p>
       </div>
     </div>
   </section>
@@ -729,13 +984,22 @@
       browserLocalPersistence,
       setPersistence,
       signInWithPopup,
+      signInWithRedirect,
+      getRedirectResult,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      updateProfile,
+      EmailAuthProvider,
+      reauthenticateWithCredential,
+      updatePassword,
       signOut,
       onAuthStateChanged,
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
       getFirestore,
       collection,
-      addDoc,
+      doc,
+      setDoc,
       getDocs,
       query,
       orderBy,
@@ -752,7 +1016,9 @@
       appId: "1:660532686250:web:9d7d0cc7f37dbfeb4e4fd3"
     };
 
-    const API_BASE = "https://ascetic-api.onrender.com";
+    const API_BASES = location.hostname === "127.0.0.1" || location.hostname === "localhost"
+      ? ["http://127.0.0.1:8000", "https://ascetic-api.onrender.com"]
+      : ["https://ascetic-api.onrender.com"];
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -787,18 +1053,47 @@
       ["study", "Study Hours"],
       ["sleep", "Sleep Hours"],
       ["exercise", "Exercise Hours"],
+      ["caffeine", "Caffeine Cups"],
+    ];
+    const categoryDefs = [
+      ["social", "Social Media", "social"],
+      ["streaming", "Streaming", "stream"],
+      ["gaming", "Gaming", "game"],
+      ["study", "Study", "study"],
+      ["sleep", "Sleep", "sleep"],
+      ["exercise", "Exercise", "exercise"],
+      ["caffeine", "Caffeine", "caffeine"],
     ];
     const defaultPrefs = { push: false, sound: false, vibrate: false, reminder: "22:00" };
     const cachedUser = LS.get(KEYS.user, null);
     let currentUser = cachedUser;
-    let profile = LS.get(KEYS.profile, defaultProfile(cachedUser));
-    let prefs = LS.get(KEYS.prefs, defaultPrefs);
-    let logs = LS.get(KEYS.logs, []);
+    let profile = loadUserValue(KEYS.profile, defaultProfile(cachedUser));
+    let prefs = loadUserValue(KEYS.prefs, defaultPrefs);
+    let logs = loadUserValue(KEYS.logs, []);
     let isOnline = navigator.onLine;
     let reminderLastFired = "";
     let pomodoroLeft = 25 * 60;
     let pomodoroTimer = null;
     let breakTimerStartedAt = Date.now();
+    let selectedSex = profile.sex || "Male";
+    let profileEditing = false;
+
+    function userStorageId(user = currentUser) {
+      return (user?.uid || user?.email || "guest").replace(/[^a-zA-Z0-9._-]/g, "_");
+    }
+
+    function scopedKey(base, user = currentUser) {
+      return `${base}_${userStorageId(user)}`;
+    }
+
+    function loadUserValue(base, fallback) {
+      return LS.get(scopedKey(base), LS.get(base, fallback));
+    }
+
+    function saveUserValue(base, value) {
+      LS.set(scopedKey(base), value);
+      LS.set(base, value);
+    }
 
     function defaultProfile(user) {
       return {
@@ -812,6 +1107,9 @@
         occupation: "Student",
         occupationOther: "",
         internetQuality: "Medium",
+        motivationLevel: "Medium",
+        mentalHealth: "Average",
+        parentEducation: "Bachelors",
       };
     }
 
@@ -830,6 +1128,10 @@
       const d = new Date();
       d.setDate(d.getDate() - 1);
       return d.toISOString().slice(0, 10);
+    }
+
+    function todayISO() {
+      return new Date().toISOString().slice(0, 10);
     }
 
     function fmtDate(isoOrTs) {
@@ -855,43 +1157,168 @@
       toast._tid = setTimeout(() => toast.classList.remove("show"), 2800);
     }
 
+    function showAuthStatus(message, isError = true) {
+      const status = $("auth-status");
+      status.textContent = message;
+      status.style.background = isError ? "var(--blush)" : "var(--mist)";
+      status.classList.add("show");
+    }
+
+    function clearAuthStatus() {
+      $("auth-status").textContent = "";
+      $("auth-status").classList.remove("show");
+    }
+
+    function friendlyAuthError(error) {
+      const code = error?.code || "";
+      if (code.includes("unauthorized-domain")) return "This domain is not authorized in Firebase Auth. Add your local/deployed domain in Firebase Console > Authentication > Settings.";
+      if (code.includes("popup-blocked")) return "The popup was blocked. Redirect sign-in is starting instead.";
+      if (code.includes("popup-closed")) return "The Google sign-in window was closed before completion.";
+      if (code.includes("invalid-credential") || code.includes("wrong-password")) return "Email or password is incorrect.";
+      if (code.includes("user-not-found")) return "No account exists for that email yet.";
+      if (code.includes("email-already-in-use")) return "That email is already registered. Use Login instead.";
+      if (code.includes("operation-not-allowed")) return "This sign-in method is not enabled in Firebase Authentication.";
+      return error?.message || "Authentication could not be completed.";
+    }
+
+    function validatePassword(password) {
+      if (password.length < 6) return "Password must be at least 6 characters.";
+      if (/^[0-9]/.test(password)) return "Password must not start with a number.";
+      if (!/^[A-Za-z][A-Za-z0-9.]*$/.test(password)) return "Password must start with a letter and may only contain letters, numbers, and period (.).";
+      return "";
+    }
+
     function setAuthVisible(isAuthed) {
       $("auth-screen").classList.toggle("hidden", isAuthed);
       $("app").classList.toggle("hidden", !isAuthed);
       document.body.classList.toggle("tier-layout-active", isAuthed);
     }
 
-    function mergeGoogleProfile(userProfile) {
+    function mergeAuthProfile(userProfile) {
       currentUser = userProfile;
       LS.set(KEYS.user, userProfile);
+      const savedProfile = LS.get(scopedKey(KEYS.profile, userProfile), null);
       profile = {
         ...defaultProfile(userProfile),
-        ...profile,
+        ...(savedProfile || {}),
         firstName: userProfile.firstName,
         lastName: userProfile.lastName,
         email: userProfile.email,
         photoURL: userProfile.photoURL,
       };
-      LS.set(KEYS.profile, profile);
+      logs = LS.get(scopedKey(KEYS.logs, userProfile), LS.get(KEYS.logs, []));
+      prefs = LS.get(scopedKey(KEYS.prefs, userProfile), prefs);
+      selectedSex = profile.sex || "Male";
+      saveUserValue(KEYS.profile, profile);
+      saveUserValue(KEYS.logs, logs);
+      saveUserValue(KEYS.prefs, prefs);
     }
 
+    document.querySelectorAll("[data-auth-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const target = button.dataset.authTab;
+        clearAuthStatus();
+        document.querySelectorAll("[data-auth-tab]").forEach((tab) => tab.classList.toggle("active", tab === button));
+        $("login-form").classList.toggle("active", target === "login");
+        $("signup-form").classList.toggle("active", target === "signup");
+      });
+    });
+
     $("google-signin").addEventListener("click", async () => {
+      const button = $("google-signin");
       try {
-        $("google-signin").disabled = true;
-        await signInWithPopup(auth, provider);
+        clearAuthStatus();
+        button.disabled = true;
+        button.dataset.originalText = button.textContent.trim();
+        button.lastChild.textContent = " Opening Google...";
+        const credential = await signInWithPopup(auth, provider);
+        mergeAuthProfile(toUserProfile(credential.user));
+        showAuthStatus("Google sign-in complete. Loading your dashboard...", false);
       } catch (error) {
-        $("auth-note").textContent = error.message || "Google sign-in could not be completed.";
+        const message = friendlyAuthError(error);
+        showAuthStatus(message);
+        if (error?.code === "auth/popup-blocked") {
+          await signInWithRedirect(auth, provider);
+        }
       } finally {
-        $("google-signin").disabled = false;
+        button.disabled = false;
+        button.lastChild.textContent = " Sign in with Google";
       }
     });
 
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        mergeGoogleProfile(toUserProfile(user));
+    $("login-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearAuthStatus();
+      const email = $("login-email").value.trim();
+      const password = $("login-password").value;
+      const button = $("login-submit");
+      button.disabled = true;
+      button.textContent = "Logging in...";
+      try {
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        mergeAuthProfile(toUserProfile(credential.user));
+        showAuthStatus("Login complete. Loading your dashboard...", false);
+      } catch (error) {
+        showAuthStatus(friendlyAuthError(error));
+      } finally {
+        button.disabled = false;
+        button.textContent = "Login";
+      }
+    });
+
+    $("signup-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearAuthStatus();
+      const firstName = $("signup-first").value.trim();
+      const lastName = $("signup-last").value.trim();
+      const email = $("signup-email").value.trim();
+      const password = $("signup-password").value;
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        showAuthStatus(passwordError);
+        return;
+      }
+
+      const button = $("signup-submit");
+      button.disabled = true;
+      button.textContent = "Creating account...";
+      try {
+        const credential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(credential.user, { displayName: `${firstName} ${lastName}`.trim() });
+        const userProfile = {
+          uid: credential.user.uid,
+          firstName,
+          lastName,
+          email,
+          photoURL: "",
+        };
+        mergeAuthProfile(userProfile);
+        showAuthStatus("Account created. Loading your dashboard...", false);
         bootApp();
         await syncFromFirestore();
-      } else if (cachedUser) {
+      } catch (error) {
+        showAuthStatus(friendlyAuthError(error));
+      } finally {
+        button.disabled = false;
+        button.textContent = "Sign up";
+      }
+    });
+
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          mergeAuthProfile(toUserProfile(result.user));
+          showAuthStatus("Google sign-in complete. Loading your dashboard...", false);
+        }
+      })
+      .catch((error) => showAuthStatus(friendlyAuthError(error)));
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        mergeAuthProfile(toUserProfile(user));
+        await syncFromFirestore();
+        bootApp();
+      } else if (LS.get(KEYS.user, null)) {
         bootApp();
       } else {
         setAuthVisible(false);
@@ -907,9 +1334,11 @@
       hydratePrefs();
       renderHome();
       renderStats();
+      renderStreak();
       renderChecklist();
       scheduleSystems();
       $("offline-banner").classList.toggle("show", !isOnline);
+      navigate("home");
     }
 
     function renderAvatar() {
@@ -924,14 +1353,17 @@
     document.querySelectorAll(".nav-item").forEach((button) => {
       button.addEventListener("click", () => navigate(button.dataset.page));
     });
-    $("profile-setup-btn").addEventListener("click", () => navigate("profile"));
-    $("profile-back-btn").addEventListener("click", () => navigate("home"));
+    $("profile-back-btn").addEventListener("click", () => {
+      profileEditing = false;
+      hydrateProfileForm();
+    });
 
     function navigate(page) {
       document.querySelectorAll(".page").forEach((el) => el.classList.remove("active"));
       document.querySelectorAll(".nav-item").forEach((el) => el.classList.toggle("active", el.dataset.page === page));
       $(`page-${page}`).classList.add("active");
       if (page === "stats") renderStats();
+      if (page === "streak") renderStreak();
       if (page === "profile") hydrateProfileForm();
     }
 
@@ -952,26 +1384,28 @@
     function buildMetricFields() {
       $("metric-fields").innerHTML = metricDefs.map(([id, label]) => `
         <div class="field">
-          <label for="f-${id}">${label}</label>
-          <div class="stepper">
-            <button type="button" data-step="${id}" data-dir="-1" aria-label="Decrease ${label}">-</button>
-            <input id="f-${id}" inputmode="decimal" type="number" min="0" max="24" step="0.5" value="0" required />
-            <button type="button" data-step="${id}" data-dir="1" aria-label="Increase ${label}">+</button>
+          <div class="range-head">
+            <label for="f-${id}">${label}</label>
+            <span class="range-value" id="f-${id}-val">0.0${id === "caffeine" ? " cups" : "h"}</span>
           </div>
+          <input id="f-${id}" type="range" min="0" max="${id === "caffeine" ? "10" : "24"}" step="0.1" value="0" required />
         </div>
       `).join("");
-      document.querySelectorAll("[data-step]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const input = $(`f-${button.dataset.step}`);
-          const value = Number(input.value || 0) + Number(button.dataset.dir) * 0.5;
-          input.value = Math.min(24, Math.max(0, value)).toFixed(1).replace(".0", "");
+      metricDefs.forEach(([id]) => {
+        const input = $(`f-${id}`);
+        const value = $(`f-${id}-val`);
+        input.addEventListener("input", () => {
+          value.textContent = `${Number(input.value).toFixed(1)}${id === "caffeine" ? " cups" : "h"}`;
         });
       });
     }
 
     function openLogModal() {
-      $("log-date").value = yesterdayISO();
+      $("log-date").value = todayISO();
+      $("log-date").max = todayISO();
+      $("log-date").min = todayISO();
       $("log-warning").classList.remove("show");
+      $("log-warning").textContent = "Incomplete data fields detected. Enter '0' if you did not utilize any hours for that category.";
       $("log-modal").classList.add("open");
       $("log-modal").setAttribute("aria-hidden", "false");
     }
@@ -982,11 +1416,16 @@
     $("open-log-btn").addEventListener("click", openLogModal);
     $("close-log-btn").addEventListener("click", closeLogModal);
     $("log-modal").addEventListener("click", (event) => { if (event.target === $("log-modal")) closeLogModal(); });
+    $("close-category-btn").addEventListener("click", closeCategoryModal);
+    $("category-modal").addEventListener("click", (event) => { if (event.target === $("category-modal")) closeCategoryModal(); });
 
     $("log-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       const form = readLogForm();
-      if (!form) {
+      const date = $("log-date").value;
+      const validationError = validateLog(date, form);
+      if (validationError) {
+        $("log-warning").textContent = validationError;
         $("log-warning").classList.add("show");
         return;
       }
@@ -996,15 +1435,16 @@
       button.textContent = "Logging...";
       try {
         const result = await predictSafely(form);
-        const entry = { ts: Date.now(), date: yesterdayISO(), form, result, uid: currentUser?.uid || "local" };
-        logs = [entry, ...logs.filter((log) => log.date !== entry.date)].slice(0, 90);
-        LS.set(KEYS.logs, logs);
+        const entry = { ts: Date.now(), date, form, result, uid: currentUser?.uid || "local" };
+        logs = [entry, ...logs.filter((log) => log.date !== entry.date)].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 365);
+        saveUserValue(KEYS.logs, logs);
         if (isOnline && auth.currentUser) {
-          addDoc(collection(db, "users", auth.currentUser.uid, "logs"), { ...entry, serverTs: serverTimestamp() }).catch(console.warn);
+          setDoc(doc(db, "users", auth.currentUser.uid, "logs", entry.date), { ...entry, serverTs: serverTimestamp() }).catch(console.warn);
         }
         closeLogModal();
         renderHome();
         renderStats();
+        renderStreak();
         showToast("Log saved.");
       } catch (error) {
         showToast(error.message || "Log could not be saved.");
@@ -1026,14 +1466,30 @@
       return form;
     }
 
+    function sameForm(a, b) {
+      return metricDefs.every(([id]) => Number(a?.[id] || 0).toFixed(1) === Number(b?.[id] || 0).toFixed(1));
+    }
+
+    function validateLog(date, form) {
+      if (!date || !form) return "Incomplete data fields detected. Enter '0' if you did not utilize any hours for that category.";
+      if (date !== todayISO()) return "Only today's date can be logged to keep streaks accurate.";
+      const total = metricDefs
+        .filter(([id]) => id !== "caffeine")
+        .reduce((sum, [id]) => sum + Number(form[id] || 0), 0);
+      if (total > 24) return "Total logged hours cannot exceed 24 hours for a single day.";
+      const existing = logs.find((log) => log.date === date);
+      if (existing && sameForm(existing.form, form)) return "This exact log was already saved for that date.";
+      return "";
+    }
+
     async function predictSafely(form) {
-      if (!isOnline) return heuristicPredict(form, "Offline estimate saved locally.");
+      if (!isOnline) return heuristicPredict(form);
       try {
         const result = await callPredict(form);
         return normalizeResult(result);
       } catch (error) {
         console.warn("[predict fallback]", error);
-        return heuristicPredict(form, "The hosted model was unavailable, so Ascetic used a local estimate for this log.");
+        return heuristicPredict(form);
       }
     }
 
@@ -1046,41 +1502,55 @@
         study_hours_per_day: form.study,
         sleep_hours: form.sleep,
         exercise_hours: form.exercise,
-        caffeine_intake_cups: 1,
+        caffeine_intake_cups: form.caffeine,
         class_attendance_percent: 75,
         assignment_completion_percent: 70,
         age: profile.age || 20,
         gender: profile.sex || "Male",
         internet_quality: internetMap[profile.internetQuality] || "Average",
-        motivation_level: "Medium",
-        mental_health_status: "Average",
-        parent_education_level: "Bachelors",
+        motivation_level: profile.motivationLevel || "Medium",
+        mental_health_status: profile.mentalHealth || "Average",
+        parent_education_level: profile.parentEducation || "Bachelors",
       };
-      const response = await fetch(`${API_BASE}/predict`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) {
-        const detail = await response.json().catch(() => ({}));
-        throw new Error(detail.detail || `API error ${response.status}`);
+      let lastError = null;
+      for (const base of API_BASES) {
+        try {
+          const response = await fetch(`${base}/predict`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (!response.ok) {
+            const detail = await response.json().catch(() => ({}));
+            throw new Error(detail.detail || `API error ${response.status}`);
+          }
+          return response.json();
+        } catch (error) {
+          lastError = error;
+        }
       }
-      return response.json();
+      throw lastError || new Error("Prediction API unavailable");
     }
 
-    function heuristicPredict(form, prefix = "") {
+    function heuristicPredict(form) {
       const distraction = form.social + form.streaming + form.gaming;
+      const caffeinePenalty = form.caffeine > 3 ? (form.caffeine - 3) * 2 : 0;
+      const sleepPenalty = form.sleep < 6 ? (6 - form.sleep) * 5 : form.sleep > 9 ? (form.sleep - 9) * 2 : 0;
+      const profileAdjustment =
+        (profile.internetQuality === "High" ? 1 : profile.internetQuality === "Low" ? -1 : 0)
+        + (profile.motivationLevel === "High" ? 2 : profile.motivationLevel === "Low" ? -2 : 0)
+        + (profile.mentalHealth === "Good" ? 1 : profile.mentalHealth === "Poor" ? -2 : 0)
+        + ((profile.age || 20) < 18 ? -1 : 0);
       const recovery = form.sleep * 4 + form.exercise * 5;
-      const focus = Math.round(Math.max(0, Math.min(100, 42 + form.study * 9 + recovery - distraction * 6)));
+      const focus = Math.round(Math.max(0, Math.min(100, 42 + form.study * 9 + recovery - distraction * 6 - sleepPenalty - caffeinePenalty + profileAdjustment)));
       const exam = Math.round(Math.max(0, Math.min(100, focus * .78 + form.study * 4 + 8)));
       const tier = focus <= 30 ? 1 : focus <= 59 ? 2 : 3;
-      const improved = Math.min(100, Math.round(exam + Math.max(6, form.social * 3)));
       return normalizeResult({
         focus_score: focus,
         exam_score: exam,
         tier,
         tier_label: tiers[tier].label,
-        nudge: `${prefix ? `${prefix} ` : ""}Based on your habits, your projected exam score is ${exam}/100. Reduce social media by 1 hour to boost it to ${improved}/100.`,
+        nudge: buildLifestyleNudge(form, focus, exam),
       });
     }
 
@@ -1093,29 +1563,79 @@
         exam_score: exam,
         tier,
         tier_label: result.tier_label || tiers[tier].label,
-        nudge: result.nudge || `Based on your habits, your projected exam score is ${exam}/100.`,
+        nudge: cleanNudge(result.nudge, exam, tier),
       };
     }
 
-    function getYesterdayLog() {
-      return logs.find((log) => log.date === yesterdayISO()) || null;
+    function cleanNudge(nudge, exam, tier) {
+      const fallback = `Based on your habits, your projected passing rate is ${exam}%.`;
+      if (!nudge) return fallback;
+      const cleaned = nudge
+        .replace(/^The hosted model is warming up, so Ascetic used a local estimate\.\s*/i, "")
+        .replace(/^Model prediction failed .*? so Ascetic used a local estimate\.\s*/i, "")
+        .replace(/projected exam score/gi, "projected passing rate")
+        .replace(/exam score/gi, "passing rate")
+        .replace(/exam performance/gi, "passing rate")
+        .replace(/exams/gi, "assessments")
+        .replace(/grades/gi, "passing rate")
+        .replace(/grade/gi, "passing rate")
+        .replace(/\/100/g, "%")
+        .trim();
+      if (!cleaned) return fallback;
+      if (exam >= 98 && /reduce .*? by .*?hour/i.test(cleaned)) {
+        return "Based on your habits, your projected passing rate is already excellent. Protect it by keeping sleep consistent, keeping leisure screen time intentional, and taking short movement breaks.";
+      }
+      return cleaned;
+    }
+
+    function buildLifestyleNudge(form, focus, exam) {
+      const suggestions = lifestyleSuggestions(form);
+      if (exam >= 98 || focus >= 95) {
+        return `Based on your habits, your projected passing rate is ${exam}%. ${suggestions.best}`;
+      }
+      const topDistraction = [
+        ["social media", form.social],
+        ["streaming", form.streaming],
+        ["gaming", form.gaming],
+      ].sort((a, b) => b[1] - a[1])[0];
+      if (topDistraction[1] >= 1) {
+        const improved = Math.min(100, Math.round(exam + Math.max(4, topDistraction[1] * 2)));
+        return `Based on your habits, your projected passing rate is ${exam}%. Reduce ${topDistraction[0]} by 1 hour and move that time toward study, sleep, or exercise to push it toward ${improved}%.`;
+      }
+      return `Based on your habits, your projected passing rate is ${exam}%. ${suggestions.best}`;
+    }
+
+    function lifestyleSuggestions(form) {
+      const items = [];
+      if (form.sleep < 7) items.push("Your sleep is low; aim for 7-9 hours so memory consolidation can catch up with your study effort.");
+      if (form.gaming > 2) items.push("Gaming is taking a noticeable block of the day; cap it after your hardest study task is complete.");
+      if (form.streaming > 2) items.push("Streaming can quietly stretch longer than planned; use a single-episode limit before sleep.");
+      if (form.social > 2) items.push("Social media is a high-switching habit; batch it into one short window instead of checking between study sessions.");
+      if (form.exercise < 0.5) items.push("Add at least a short walk or stretch block to improve energy and attention.");
+      if (form.study >= 4 && form.sleep < 6) items.push("High study hours with short sleep can backfire; protect rest so studying turns into recall.");
+      if (!items.length) items.push("Your balance is strong; keep the same routine and add short breaks so the habit remains sustainable.");
+      return { all: items, best: items[0] };
+    }
+
+    function getTodayLog() {
+      return logs.find((log) => log.date === todayISO()) || null;
     }
 
     function renderHome() {
-      const last = getYesterdayLog();
+      const last = getTodayLog();
       document.body.classList.remove("tier-1", "tier-2", "tier-3");
       if (!last) {
         $("home-summary").className = "card soft";
-        $("home-title").textContent = "No data recorded for yesterday.";
-        $("home-message").textContent = "Please log your metrics to reveal tomorrow's focus and exam projections.";
+        $("home-title").textContent = "No data recorded for today.";
+        $("home-message").textContent = "Please log your metrics to reveal tomorrow's focus and passing projections.";
         $("focus-metric").textContent = "--%";
-        $("exam-metric").textContent = "--/100";
+        $("exam-metric").textContent = "--%";
         $("study-metric").textContent = "--h";
         $("sleep-metric").textContent = "--h";
         document.querySelectorAll(".metric-value").forEach((el) => el.classList.add("blurred"));
         updateRing(0, true);
         $("nudge-card").className = "card section";
-        $("nudge-card").innerHTML = `<p class="eyebrow">AI nudge</p><p class="desc">No data recorded for yesterday. Please log your metrics to reveal tomorrow's focus and exam projections.</p>`;
+        $("nudge-card").innerHTML = `<p class="eyebrow">AI nudge</p><p class="desc">No data recorded for today. Please log your metrics to reveal tomorrow's focus and passing projections.</p>`;
       } else {
         const { result, form } = last;
         const tier = tiers[result.tier];
@@ -1125,7 +1645,7 @@
         $("home-title").textContent = `${tier.label}: ${result.focus_score}% focus`;
         $("home-message").textContent = tier.message;
         $("focus-metric").textContent = `${result.focus_score}%`;
-        $("exam-metric").textContent = `${result.exam_score}/100`;
+        $("exam-metric").textContent = `${result.exam_score}%`;
         $("study-metric").textContent = `${form.study}h`;
         $("sleep-metric").textContent = `${form.sleep}h`;
         document.querySelectorAll(".metric-value").forEach((el) => el.classList.remove("blurred"));
@@ -1134,7 +1654,10 @@
         $("nudge-card").innerHTML = `<p class="eyebrow">AI nudge</p><p class="desc">${result.nudge}</p>`;
       }
 
-      $("recent-list").innerHTML = logs.length ? logs.slice(0, 5).map(historyItem).join("") : `<p class="desc">No logs yet.</p>`;
+      $("recent-list").innerHTML = last ? todayBreakdown(last) : `<p class="desc">No log breakdown for today yet.</p>`;
+      document.querySelectorAll("[data-home-category]").forEach((button) => {
+        button.addEventListener("click", () => openCategoryModal(last, button.dataset.homeCategory));
+      });
     }
 
     function updateRing(score, empty = false, color = "#A8DF8E") {
@@ -1156,39 +1679,170 @@
       `;
     }
 
+    function todayBreakdown(log) {
+      return `
+        <div class="breakdown-grid">
+          ${categoryDefs.map(([key, label]) => `
+            <button class="breakdown-card" type="button" data-home-category="${key}">
+              <span>${label}</span>
+              <strong>${Number(log.form[key] || 0).toFixed(1)}h</strong>
+            </button>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function openCategoryModal(log, key) {
+      if (!log) return;
+      const label = categoryDefs.find(([id]) => id === key)?.[1] || key;
+      $("category-date").textContent = `${fmtDate(log.date)} - Focus ${log.result.focus_score}%`;
+      $("category-title").textContent = `${label}: ${Number(log.form[key] || 0).toFixed(1)}h`;
+      $("category-suggestion").textContent = categorySuggestion(log.form, key);
+      $("category-modal").classList.add("open");
+      $("category-modal").setAttribute("aria-hidden", "false");
+    }
+
+    function closeCategoryModal() {
+      $("category-modal").classList.remove("open");
+      $("category-modal").setAttribute("aria-hidden", "true");
+    }
+
+    function categorySuggestion(form, key) {
+      const common = "Passing rate depends on the full pattern: study, sleep, recovery, and leisure screen time working together.";
+      const value = Number(form[key] || 0);
+      const messages = {
+        social: value > 2
+          ? `Based on your habits, social media is high today. Batch it into one short window after studying so attention does not keep resetting. ${common}`
+          : `Based on your habits, social media is controlled today. Keep it away from study breaks so your focus stays warm. ${common}`,
+        streaming: value > 2
+          ? `Based on your habits, streaming may be crowding out rest. Use a single-episode cap, especially near bedtime. ${common}`
+          : `Based on your habits, streaming is moderate. Keep it scheduled instead of letting it run in the background. ${common}`,
+        gaming: value > 2
+          ? `Based on your habits, gaming is a large leisure block. Put it after the hardest study task and stop before sleep. ${common}`
+          : `Based on your habits, gaming is manageable. Keep it as a reward, not a study-session interrupt. ${common}`,
+        study: value >= 4
+          ? `Based on your habits, study time is strong. Make sure sleep and breaks support memory, because long study with low rest can still hurt your passing rate.`
+          : `Based on your habits, study time can improve. Add one focused 25-minute block before leisure screen time. ${common}`,
+        sleep: value < 7
+          ? `Based on your habits, sleep is the main risk. Aim for 7-9 hours because recall and passing rate depend heavily on recovery.`
+          : `Based on your habits, sleep is supporting your learning. Keep it consistent, especially before assessments.`,
+        exercise: value < 0.5
+          ? `Based on your habits, movement is low. Add a 10-20 minute walk or stretch to improve alertness and reduce screen fatigue. ${common}`
+          : `Based on your habits, exercise is helping your focus. Keep it light and consistent on study-heavy days.`,
+        caffeine: value > 3
+          ? `Based on your habits, caffeine intake is high. Keep cups earlier in the day because caffeine can reduce sleep quality and lower focus recovery. ${common}`
+          : `Based on your habits, caffeine intake is manageable. Keep it away from late afternoon or evening so sleep quality stays protected.`,
+      };
+      return messages[key] || lifestyleSuggestions(form).best;
+    }
+
     function renderStats() {
       const last7 = [...logs].sort((a, b) => a.date.localeCompare(b.date)).slice(-7);
-      $("distraction-chart").innerHTML = chartBars(last7, ["social", "streaming", "gaming", "study"], ["social", "stream", "game", "study"]);
-      $("health-chart").innerHTML = chartBars(last7, ["sleep", "exercise"], ["sleep", "exercise"]);
-      $("log-count").textContent = logs.length;
       if (!logs.length) {
-        $("avg-focus").textContent = "--%";
-        $("avg-exam").textContent = "--/100";
-        $("best-focus").textContent = "--%";
+        $("category-charts").innerHTML = `<div class="card"><p class="desc">Start logging to see your 7-day graphs.</p></div>`;
         $("all-logs-list").innerHTML = `<p class="desc">No logs yet.</p>`;
         return;
       }
-      $("avg-focus").textContent = `${Math.round(avg(logs, (log) => log.result.focus_score))}%`;
-      $("avg-exam").textContent = `${Math.round(avg(logs, (log) => log.result.exam_score))}/100`;
-      $("best-focus").textContent = `${Math.max(...logs.map((log) => log.result.focus_score))}%`;
+      $("category-charts").innerHTML = categoryDefs.map(([key, label, className]) => categoryChart(last7, key, label, className)).join("");
+      document.querySelectorAll("[data-stat-bar]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const log = logs.find((item) => item.date === button.dataset.date);
+          const key = button.dataset.key;
+          const label = categoryDefs.find(([id]) => id === key)?.[1] || key;
+          $(`stats-detail-${key}`).innerHTML = log ? `
+            <p class="eyebrow">${fmtDate(log.date)} details</p>
+            <h2>${label}: ${Number(log.form[key] || 0).toFixed(1)}${key === "caffeine" ? " cups" : "h"}</h2>
+            <p class="desc">Focus Rate: ${log.result.focus_score}%</p>
+            <p class="desc">Passing Rate: ${log.result.exam_score}%</p>
+          ` : `<p class="desc">No log found for that bar.</p>`;
+        });
+      });
       $("all-logs-list").innerHTML = logs.map(historyItem).join("");
     }
 
-    function chartBars(items, keys, classes) {
-      if (!items.length) return `<p class="desc">Start logging to see your 7-day lookback.</p>`;
-      const max = Math.max(8, ...items.flatMap((item) => keys.map((key) => item.form[key] || 0)));
-      return items.map((item) => `
-        <div class="day-col">
-          <div class="bar-group">
-            ${keys.map((key, index) => `<div class="bar ${classes[index]}" title="${key}: ${item.form[key]}h" style="height:${Math.max(3, ((item.form[key] || 0) / max) * 100)}%"></div>`).join("")}
+    function categoryChart(items, key, label, className) {
+      const max = Math.max(1, ...items.map((item) => Number(item.form[key] || 0)));
+      return `
+        <div class="card chart-card">
+          <p class="eyebrow">${label}</p>
+          <h2>Last 7 days</h2>
+          <div class="chart">
+            ${items.map((item) => {
+              const value = Number(item.form[key] || 0);
+              return `
+                <div class="day-col">
+                  <button class="bar-button" type="button" data-stat-bar="1" data-key="${key}" data-date="${item.date}" aria-label="${label} ${value.toFixed(1)} hours on ${fmtDate(item.date)}">
+                    <span class="bar ${className}" style="height:${Math.max(4, (value / max) * 100)}%"></span>
+                  </button>
+                  <div class="day-label">${fmtDate(item.date).split(" ")[1]}</div>
+                </div>
+              `;
+            }).join("")}
           </div>
-          <div class="day-label">${fmtDate(item.date).split(" ")[1]}</div>
+          <div class="card-sm" id="stats-detail-${key}" style="margin-top:12px">
+            <p class="desc">Click a bar to view focus and passing rates.</p>
+          </div>
         </div>
-      `).join("");
+      `;
     }
 
     function avg(items, fn) {
       return items.reduce((sum, item) => sum + fn(item), 0) / items.length;
+    }
+
+    function calcCurrentStreak() {
+      const dates = new Set(logs.map((log) => log.date));
+      let streak = 0;
+      const cursor = new Date();
+      while (dates.has(cursor.toISOString().slice(0, 10))) {
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+      return streak;
+    }
+
+    function renderStreak(selectedDate = "") {
+      const streak = calcCurrentStreak();
+      $("streak-title").textContent = `${streak}-day streak`;
+      $("streak-message").textContent = streak ? "Nice rhythm. Keep logging daily to protect the streak." : "Log today's activities to start your streak.";
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const first = new Date(year, month, 1);
+      const last = new Date(year, month + 1, 0);
+      const logged = new Map(logs.map((log) => [log.date, log]));
+      const cells = [];
+      for (let i = 0; i < first.getDay(); i += 1) cells.push(`<span></span>`);
+      for (let day = 1; day <= last.getDate(); day += 1) {
+        const iso = new Date(year, month, day, 12).toISOString().slice(0, 10);
+        const hasLog = logged.has(iso);
+        cells.push(`
+          <button class="calendar-cell ${hasLog ? "logged" : ""} ${selectedDate === iso ? "selected" : ""}" type="button" data-calendar-date="${iso}" ${hasLog ? "" : "disabled"}>
+            ${day}
+          </button>
+        `);
+      }
+      $("streak-calendar").innerHTML = cells.join("");
+      document.querySelectorAll("[data-calendar-date]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const log = logged.get(button.dataset.calendarDate);
+          renderStreak(button.dataset.calendarDate);
+          $("streak-detail").innerHTML = log ? `
+            <p class="eyebrow">${fmtDate(log.date)} activity</p>
+            <h2 style="font-size:30px">Focus ${log.result.focus_score}%</h2>
+            <h2 style="font-size:30px">Passing ${log.result.exam_score}%</h2>
+            <ul class="desc">
+              <li>Social media: ${log.form.social}h</li>
+              <li>Streaming: ${log.form.streaming}h</li>
+              <li>Gaming: ${log.form.gaming}h</li>
+              <li>Study: ${log.form.study}h</li>
+              <li>Sleep: ${log.form.sleep}h</li>
+              <li>Exercise: ${log.form.exercise}h</li>
+              <li>Caffeine: ${log.form.caffeine || 0} cups</li>
+            </ul>
+          ` : `<p class="desc">No data for that day.</p>`;
+        });
+      });
     }
 
     function hydrateProfileForm() {
@@ -1197,27 +1851,65 @@
       $("pf-email").value = profile.email || "";
       $("pf-dob").value = profile.dob || "";
       $("pf-age").value = profile.age || calculateAge(profile.dob);
-      document.querySelectorAll("input[name='sex']").forEach((input) => { input.checked = input.value === (profile.sex || "Male"); });
+      selectedSex = profile.sex || "Male";
+      document.querySelectorAll("[data-sex]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.sex === selectedSex);
+      });
       $("pf-occupation").value = profile.occupation || "Student";
       $("pf-occupation-other").value = profile.occupationOther || "";
       $("pf-internet").value = profile.internetQuality || "Medium";
+      $("pf-motivation").value = profile.motivationLevel || "Medium";
+      $("pf-mental").value = profile.mentalHealth || "Average";
+      $("pf-parent-education").value = profile.parentEducation || "Bachelors";
       $("occupation-other-wrap").classList.toggle("hidden", $("pf-occupation").value !== "Other");
+      setProfileEditing(profileEditing);
     }
 
     $("pf-dob").addEventListener("change", () => { $("pf-age").value = calculateAge($("pf-dob").value); });
     $("pf-occupation").addEventListener("change", () => $("occupation-other-wrap").classList.toggle("hidden", $("pf-occupation").value !== "Other"));
+    document.querySelectorAll("[data-sex]").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (!profileEditing) return;
+        selectedSex = button.dataset.sex;
+        document.querySelectorAll("[data-sex]").forEach((item) => item.classList.toggle("active", item === button));
+      });
+    });
+    $("edit-profile-btn").addEventListener("click", () => setProfileEditing(true));
+
+    function setProfileEditing(isEditing) {
+      profileEditing = isEditing;
+      ["pf-first", "pf-last", "pf-dob", "pf-occupation", "pf-internet", "pf-occupation-other", "pf-motivation", "pf-mental", "pf-parent-education"].forEach((id) => {
+        const el = $(id);
+        if (el) el.disabled = !isEditing;
+      });
+      document.querySelectorAll("[data-sex]").forEach((button) => { button.disabled = !isEditing; });
+      $("edit-profile-btn").classList.toggle("hidden", isEditing);
+      $("save-profile-btn").classList.toggle("hidden", !isEditing);
+      $("profile-back-btn").classList.toggle("hidden", !isEditing);
+      $("profile-heading").textContent = isEditing ? "Edit profile" : "Your account";
+    }
+
     $("profile-form").addEventListener("submit", (event) => {
       event.preventDefault();
       profile = {
         ...profile,
+        firstName: $("pf-first").value.trim() || profile.firstName,
+        lastName: $("pf-last").value.trim() || profile.lastName,
         dob: $("pf-dob").value,
         age: calculateAge($("pf-dob").value),
-        sex: document.querySelector("input[name='sex']:checked")?.value || "Male",
+        sex: selectedSex || "Male",
         occupation: $("pf-occupation").value,
         occupationOther: $("pf-occupation-other").value.trim(),
         internetQuality: $("pf-internet").value,
+        motivationLevel: $("pf-motivation").value,
+        mentalHealth: $("pf-mental").value,
+        parentEducation: $("pf-parent-education").value,
       };
-      LS.set(KEYS.profile, profile);
+      saveUserValue(KEYS.profile, profile);
+      if (auth.currentUser) {
+        updateProfile(auth.currentUser, { displayName: `${profile.firstName} ${profile.lastName}`.trim() }).catch(console.warn);
+      }
+      setProfileEditing(false);
       showToast("Profile saved.");
       renderHome();
     });
@@ -1229,7 +1921,7 @@
       $("pref-reminder").value = prefs.reminder || "22:00";
     }
 
-    $("save-prefs-btn").addEventListener("click", async () => {
+    async function savePrefsRealtime() {
       prefs = {
         push: $("pref-push").checked,
         sound: $("pref-sound").checked,
@@ -1239,13 +1931,45 @@
       if (prefs.push && "Notification" in window && Notification.permission === "default") {
         await Notification.requestPermission().catch(() => {});
       }
-      LS.set(KEYS.prefs, prefs);
-      showToast("System controls saved.");
+      saveUserValue(KEYS.prefs, prefs);
+      scheduleSystems();
+    }
+
+    ["pref-push", "pref-sound", "pref-vibrate", "pref-reminder"].forEach((id) => {
+      $(id).addEventListener("change", savePrefsRealtime);
+    });
+
+    $("update-password-btn").addEventListener("click", async () => {
+      const currentPassword = $("current-password").value;
+      const newPassword = $("new-password").value;
+      const passwordError = validatePassword(newPassword);
+      if (!currentPassword) {
+        showToast("Enter your current password first.");
+        return;
+      }
+      if (passwordError) {
+        showToast(passwordError);
+        return;
+      }
+      if (!auth.currentUser?.email) {
+        showToast("Password changes require an active email login.");
+        return;
+      }
+      try {
+        const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+        await reauthenticateWithCredential(auth.currentUser, credential);
+        await updatePassword(auth.currentUser, newPassword);
+        $("current-password").value = "";
+        $("new-password").value = "";
+        showToast("Password updated.");
+      } catch (error) {
+        showToast(friendlyAuthError(error));
+      }
     });
 
     $("logout-btn").addEventListener("click", async () => {
       await signOut(auth).catch(() => {});
-      [KEYS.user, KEYS.profile, KEYS.prefs, KEYS.logs].forEach((key) => LS.remove(key));
+      LS.remove(KEYS.user);
       currentUser = null;
       profile = defaultProfile(null);
       prefs = defaultPrefs;
@@ -1257,14 +1981,15 @@
     async function syncFromFirestore() {
       if (!isOnline || !auth.currentUser) return;
       try {
-        const q = query(collection(db, "users", auth.currentUser.uid, "logs"), orderBy("ts", "desc"), limit(90));
+        const q = query(collection(db, "users", auth.currentUser.uid, "logs"), orderBy("ts", "desc"), limit(365));
         const snapshot = await getDocs(q);
         const remote = snapshot.docs.map((doc) => doc.data()).filter((entry) => entry.form && entry.result);
         const map = new Map([...remote, ...logs].map((entry) => [entry.date, entry]));
         logs = [...map.values()].sort((a, b) => b.ts - a.ts).slice(0, 90);
-        LS.set(KEYS.logs, logs);
+        saveUserValue(KEYS.logs, logs);
         renderHome();
         renderStats();
+        renderStreak();
       } catch (error) {
         console.warn("[firestore sync]", error);
       }
@@ -1336,6 +2061,9 @@
           notify("Pomodoro complete", "Your 25-minute focus reset is complete.");
         }
       }, 1000);
+    });
+    $("streak-focus-btn").addEventListener("click", () => {
+      $("detox-panel").style.display = "block";
     });
     $("detox-close").addEventListener("click", () => $("detox-panel").style.display = "none");
   </script>
