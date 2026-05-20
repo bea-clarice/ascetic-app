@@ -16,13 +16,12 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-const CACHE_NAME = "ascetic-v2";
+const CACHE_NAME = "ascetic-v3";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/manifest.json",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
+  "/icons/ascetic-logo.svg",
 ];
 
 // ─── Install: cache static assets ─────────────────────────────────────────────
@@ -59,8 +58,8 @@ messaging.onBackgroundMessage((payload) => {
   const { title, body, icon } = payload.notification || {};
   self.registration.showNotification(title || "Ascetic", {
     body: body || "Time to check in.",
-    icon: icon || "/icons/icon-192.png",
-    badge: "/icons/icon-72.png",
+    icon: icon || "/icons/ascetic-logo.svg",
+    badge: "/icons/ascetic-logo.svg",
     vibrate: [120, 80, 120, 80, 120],
     data: payload.data || {},
     actions: [
@@ -84,8 +83,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(title || "Ascetic", {
       body: body || "Time to check in.",
-      icon: icon || "/icons/icon-192.png",
-      badge: "/icons/icon-72.png",
+      icon: icon || "/icons/ascetic-logo.svg",
+      badge: "/icons/ascetic-logo.svg",
       vibrate: [120, 80, 120, 80, 120],
       data: payload.data || {},
     })

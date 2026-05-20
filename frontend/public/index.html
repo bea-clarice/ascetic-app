@@ -8,11 +8,11 @@
   <meta name="description" content="Disconnect from noise, connect with purpose" />
   <title>Ascetic</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/ascetic-logo.svg" />
   <link rel="icon" type="image/svg+xml" href="icons/ascetic-logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=optional" rel="stylesheet" />
   <style>
     :root {
       --white: #FFFFFF;
@@ -203,6 +203,7 @@
     }
     .topbar .brand { margin: 0; font-size: 20px; }
     .topbar-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+    .clock { color: var(--ink); font-weight: 800; white-space: nowrap; }
     .avatar {
       width: 34px;
       height: 34px;
@@ -244,7 +245,7 @@
     .section { margin-bottom: 20px; }
     .grid { display: grid; gap: 14px; }
     .hero-grid { grid-template-columns: minmax(0, 1fr) 320px; align-items: stretch; }
-    .metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .chart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .profile-grid { grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr); }
     .card {
@@ -325,9 +326,26 @@
       background: var(--blush);
       padding: calc(36px + var(--safe-top)) 20px calc(36px + var(--safe-bot));
     }
+    .detox-panel.safe { background: var(--mist); }
     .tier-layout-active.tier-1 .detox-panel { display: block; }
-    .detox-inner { max-width: 620px; margin: 0 auto; }
-    .timer { font-size: clamp(58px, 15vw, 110px); font-weight: 800; margin: 22px 0; }
+    .detox-inner { max-width: 620px; margin: 0 auto; text-align: center; }
+    .detox-inner .hero-actions { justify-content: center; }
+    .timer { font-size: clamp(58px, 15vw, 110px); font-weight: 800; margin: 22px 0 12px; text-align: center; }
+    .timer-progress {
+      width: 100%;
+      height: 10px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 0 auto 16px;
+    }
+    .timer-progress-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--ink);
+      transition: width .2s linear;
+    }
     .checklist { display: grid; gap: 8px; margin-top: 16px; }
     .check-row {
       display: flex;
@@ -337,7 +355,34 @@
       border: 1px solid var(--rose);
       border-radius: var(--radius);
       padding: 12px;
+      text-align: left;
     }
+    .danger-btn {
+      border: 1px solid #D93B4A;
+      border-radius: var(--radius);
+      background: #D93B4A;
+      color: var(--white);
+      min-height: 44px;
+      padding: 12px 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-weight: 700;
+    }
+    .detox-tools { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .detox-complete {
+      display: none;
+      background: var(--white);
+      border: 1px solid var(--green);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin-top: 14px;
+      color: var(--ink);
+      font-weight: 800;
+      text-align: center;
+    }
+    .detox-complete.show { display: block; }
 
     .history-list { display: grid; gap: 10px; }
     .history-item {
@@ -396,6 +441,17 @@
       border-bottom: 1px solid var(--line);
       border-left: 1px solid var(--line);
       padding: 0 8px 8px;
+    }
+    .chart-wrap { display: grid; grid-template-columns: 28px 1fr; gap: 8px; align-items: end; }
+    .axis-label {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      align-self: center;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-align: center;
+      text-transform: uppercase;
     }
     .day-col { flex: 1; min-width: 34px; display: grid; align-items: end; gap: 6px; height: 100%; }
     .bar-stack, .bar-group { display: flex; align-items: flex-end; gap: 3px; height: 168px; }
@@ -463,6 +519,7 @@
       margin-bottom: 8px;
     }
     .range-value { color: var(--ink); }
+    .range-note { color: var(--muted); font-size: 11px; font-weight: 700; margin-top: 4px; }
     .stepper {
       display: grid;
       grid-template-columns: 44px 1fr 44px;
@@ -479,6 +536,7 @@
       font-weight: 800;
     }
     .inline-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .dob-fields { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 8px; }
     .radio-row, .toggle-row {
       display: flex;
       flex-wrap: wrap;
@@ -588,6 +646,7 @@
       background: rgba(38,51,32,.28);
       padding-top: var(--safe-top);
     }
+    #detox-info-modal { z-index: 90; }
     .modal-backdrop.open { display: flex; }
     .modal {
       width: 100%;
@@ -648,7 +707,7 @@
     @media (max-width: 820px) {
       .hero-grid, .chart-grid, .profile-grid, .metric-grid { grid-template-columns: 1fr; }
       .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .topbar-meta span { display: none; }
+      .topbar-meta #today-date { display: none; }
       .auth-panel { padding: 22px; }
       .auth-screen { align-items: start; padding-top: calc(18px + var(--safe-top)); }
       .shell { padding: 16px; }
@@ -667,7 +726,7 @@
     <div class="auth-center">
       <div class="auth-panel">
         <h1>Welcome back.</h1>
-        <p>Use Google, or log in with your Ascetic email and password.</p>
+        <p>Use Google, or log in with an Ascetic password you created.</p>
         <button class="google-btn" id="google-signin">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path fill="#FFAAB8" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -725,7 +784,7 @@
   <div id="app" class="hidden">
     <header class="topbar">
       <div class="brand"><span class="brand-mark"><img src="icons/ascetic-logo.svg" alt="" /></span><span>Ascetic</span></div>
-      <div class="topbar-meta"><span id="today-date"></span><div class="avatar" id="top-avatar">A</div></div>
+      <div class="topbar-meta"><span id="today-date"></span><span class="clock" id="live-clock"></span><div class="avatar" id="top-avatar">A</div></div>
     </header>
 
     <div class="offline" id="offline-banner">Offline mode is active. Cached profile and local logs remain available.</div>
@@ -736,8 +795,8 @@
           <div class="grid hero-grid section">
             <div class="card soft" id="home-summary">
               <p class="eyebrow">Tomorrow's readiness</p>
-              <h1 id="home-title">No data recorded for today.</h1>
-              <p class="desc" id="home-message">Please log your metrics to reveal tomorrow's focus and passing projections.</p>
+              <h1 id="home-title">No data recorded for yesterday.</h1>
+              <p class="desc" id="home-message">Log yesterday's metrics to reveal today's focus and passing projections.</p>
               <div class="hero-actions">
                 <button class="primary-btn" id="open-log-btn">Log Screen-Time</button>
               </div>
@@ -757,7 +816,6 @@
           </div>
 
           <div class="grid metric-grid section">
-            <div class="card metric"><span class="metric-label">Predicted Focus</span><span class="metric-value blurred" id="focus-metric">--%</span></div>
             <div class="card metric"><span class="metric-label">Projected Passing Rate</span><span class="metric-value blurred" id="exam-metric">--%</span></div>
             <div class="card metric"><span class="metric-label">Study Hours</span><span class="metric-value blurred" id="study-metric">--h</span></div>
             <div class="card metric"><span class="metric-label">Sleep Hours</span><span class="metric-value blurred" id="sleep-metric">--h</span></div>
@@ -765,7 +823,7 @@
 
           <div class="card section" id="nudge-card">
             <p class="eyebrow">AI nudge</p>
-            <p class="desc">No data recorded for today. Please log your metrics to reveal tomorrow's focus and passing projections.</p>
+            <p class="desc">No data recorded for yesterday. Please log yesterday's metrics to reveal today's focus and passing projections.</p>
           </div>
 
           <div class="card">
@@ -813,7 +871,14 @@
               </div>
               <div class="field"><label for="pf-email">Email</label><input class="readonly" id="pf-email" disabled /></div>
               <div class="inline-fields">
-                <div class="field"><label for="pf-dob">Date of Birth</label><input id="pf-dob" type="date" disabled /></div>
+                <div class="field">
+                  <label>Date of Birth</label>
+                  <div class="dob-fields">
+                    <select id="pf-dob-year" aria-label="Birth year" disabled></select>
+                    <select id="pf-dob-month" aria-label="Birth month" disabled></select>
+                    <select id="pf-dob-day" aria-label="Birth day" disabled></select>
+                  </div>
+                </div>
                 <div class="field"><label for="pf-age">Age</label><input class="readonly" id="pf-age" disabled /></div>
               </div>
               <div class="field">
@@ -876,9 +941,9 @@
                   <option value="PhD">PhD</option>
                 </select>
               </div>
-              <div class="field" style="margin-top:16px"><label for="current-password">Current Password</label><input id="current-password" type="password" autocomplete="current-password" /></div>
-              <div class="field"><label for="new-password">New Password</label><input id="new-password" type="password" autocomplete="new-password" /></div>
-              <button class="secondary-btn" id="update-password-btn" type="button" style="width:100%">Edit Password</button>
+              <p class="desc hidden" id="google-password-advice">First time using Google here? Set an Ascetic password so email/password login works next time.</p>
+              <div class="field" style="margin-top:16px"><label for="current-password">Current Password</label><input id="current-password" type="password" autocomplete="current-password" placeholder="••••••••" disabled /></div>
+              <div class="field hidden" id="new-password-wrap"><label for="new-password">New Password</label><input id="new-password" type="password" autocomplete="new-password" disabled /></div>
               <div class="profile-actions">
                 <button class="primary-btn" type="button" id="edit-profile-btn">Edit Profile</button>
                 <button class="primary-btn hidden" type="submit" id="save-profile-btn">Save Profile</button>
@@ -962,15 +1027,44 @@
 
   <section class="detox-panel" id="detox-panel">
     <div class="detox-inner">
-      <p class="eyebrow">Digital Detox Mode</p>
+      <p class="eyebrow" id="detox-label">Digital Detox Mode</p>
       <h1>Focus clock is active.</h1>
-      <p class="desc">Your score is at or below 30%. Step away from high-stimulation screens and complete a short offline reset.</p>
+      <p class="desc" id="detox-message">Use this reset to step away from screens and refresh your focus.</p>
       <div class="timer" id="pomodoro-time">25:00</div>
+      <div class="timer-progress" aria-hidden="true"><div class="timer-progress-fill" id="timer-progress-fill"></div></div>
       <div class="hero-actions">
         <button class="primary-btn" id="pomodoro-toggle">Start</button>
+        <button class="danger-btn" id="pomodoro-stop" type="button">Stop</button>
         <button class="secondary-btn" id="detox-close">Return to app</button>
       </div>
+      <div class="detox-tools">
+        <button class="secondary-btn" id="detox-info" type="button">How it works</button>
+        <button class="secondary-btn" id="checklist-shuffle" type="button">Reload checklist</button>
+      </div>
       <div class="checklist" id="detox-checklist"></div>
+      <div class="detox-complete" id="detox-complete">Well done. You completed the reset. Keep this steady rhythm going.</div>
+    </div>
+  </section>
+
+  <section class="modal-backdrop" id="detox-info-modal" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-inner">
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">Digital Detox Mode</p>
+            <h2>How it works</h2>
+          </div>
+          <button class="icon-btn" id="close-detox-info" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+        <ul class="desc">
+          <li>10% focus and below: 10 checklist tasks.</li>
+          <li>11% to 20% focus: 8 checklist tasks.</li>
+          <li>21% to 30% focus: 4 checklist tasks.</li>
+          <li>31% focus and above: safe state, with 4 optional checklist tasks.</li>
+        </ul>
+      </div>
     </div>
   </section>
 
@@ -1026,6 +1120,8 @@
     provider.addScope("profile");
     provider.addScope("email");
     setPersistence(auth, browserLocalPersistence).catch(console.warn);
+    // Pre-warm Render backend silently before user submits
+    if (navigator.onLine) fetch("https://ascetic-api.onrender.com/").catch(() => {});
 
     const $ = (id) => document.getElementById(id);
     const LS = {
@@ -1039,6 +1135,7 @@
       prefs: "ascetic_prefs",
       logs: "ascetic_logs",
       checklist: "ascetic_detox_checklist",
+      checklistDone: "ascetic_detox_checklist_done",
     };
     const internetMap = { Low: "Poor", Medium: "Average", High: "Good" };
     const tiers = {
@@ -1064,6 +1161,44 @@
       ["exercise", "Exercise", "exercise"],
       ["caffeine", "Caffeine", "caffeine"],
     ];
+    const hourMetricIds = metricDefs.filter(([id]) => id !== "caffeine").map(([id]) => id);
+    const POMODORO_TOTAL = 25 * 60;
+    const detoxTasks = [
+      "Clear your desk",
+      "Write the next study task on paper",
+      "Read printed notes for 10 minutes",
+      "Do a 5-minute stretch",
+      "Take a 10-minute walk outside",
+      "Drink a full glass of water",
+      "Do 10 jumping jacks or push-ups",
+      "Rest your eyes. Look at something 20 feet away for 20 seconds",
+      "Roll your shoulders back 10 times",
+      "Stand up and stretch your arms above your head for 30 seconds",
+      "Do a 2-minute deep breathing exercise",
+      "Splash cold water on your face",
+      "Step outside for fresh air for 5 minutes",
+      "Gently massage your neck and temples for 1 minute",
+      "Write down 3 things you want to accomplish today",
+      "Close all browser tabs you don't need",
+      "Silence your phone for the next 25 minutes",
+      "Review your notes from yesterday",
+      "Write one sentence summarizing what you just studied",
+      "List 3 things you are grateful for right now",
+      "Take 5 slow deep breaths and clear your mind",
+      "Read one paragraph from a physical book",
+      "Doodle or sketch freely for 2 minutes",
+      "Write down any distracting thoughts to revisit later",
+      "Put your phone in another room",
+      "Turn off all non-essential notifications",
+      "Organize your study materials for the next session",
+      "Make sure your study space has good lighting",
+      "Clear food and drinks off your desk except water",
+      "Open a window for fresh air circulation",
+      "Adjust your chair and posture",
+      "Throw away any clutter within arm's reach",
+      "Set a pleasant but non-distracting background if needed",
+      "Check that your room temperature is comfortable",
+    ];
     const defaultPrefs = { push: false, sound: false, vibrate: false, reminder: "22:00" };
     const cachedUser = LS.get(KEYS.user, null);
     let currentUser = cachedUser;
@@ -1072,11 +1207,12 @@
     let logs = loadUserValue(KEYS.logs, []);
     let isOnline = navigator.onLine;
     let reminderLastFired = "";
-    let pomodoroLeft = 25 * 60;
+    let pomodoroLeft = POMODORO_TOTAL;
     let pomodoroTimer = null;
-    let breakTimerStartedAt = Date.now();
+    let detoxPromptedAt = Date.now();
     let selectedSex = profile.sex || "Male";
     let profileEditing = false;
+    let checklistShuffle = 0;
 
     function userStorageId(user = currentUser) {
       return (user?.uid || user?.email || "guest").replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -1124,14 +1260,27 @@
       };
     }
 
+    function localISO(date = new Date()) {
+      const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return local.toISOString().slice(0, 10);
+    }
+
     function yesterdayISO() {
       const d = new Date();
       d.setDate(d.getDate() - 1);
-      return d.toISOString().slice(0, 10);
+      return localISO(d);
     }
 
     function todayISO() {
-      return new Date().toISOString().slice(0, 10);
+      return localISO();
+    }
+
+    function activeLogDate() {
+      return yesterdayISO();
+    }
+
+    function activeStreakDate() {
+      return todayISO();
     }
 
     function fmtDate(isoOrTs) {
@@ -1147,6 +1296,52 @@
       const monthDelta = today.getMonth() - birth.getMonth();
       if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < birth.getDate())) age -= 1;
       return Math.min(100, Math.max(10, age || 20));
+    }
+
+    function parseDob(dob) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob || "");
+      return {
+        year: match ? match[1] : "",
+        month: match ? match[2] : "",
+        day: match ? match[3] : "",
+      };
+    }
+
+    function buildDob() {
+      const year = $("pf-dob-year").value;
+      const month = $("pf-dob-month").value;
+      const day = $("pf-dob-day").value;
+      if (!year || !month || !day) return "";
+      return `${year}-${month}-${day}`;
+    }
+
+    function daysInMonth(year, month) {
+      if (!year || !month) return 31;
+      return new Date(Number(year), Number(month), 0).getDate();
+    }
+
+    function hydrateDobOptions() {
+      const currentYear = new Date().getFullYear();
+      $("pf-dob-year").innerHTML = `<option value="">Year</option>${Array.from({ length: 91 }, (_, index) => {
+        const year = currentYear - 10 - index;
+        return `<option value="${year}">${year}</option>`;
+      }).join("")}`;
+      $("pf-dob-month").innerHTML = `<option value="">Month</option>${Array.from({ length: 12 }, (_, index) => {
+        const value = String(index + 1).padStart(2, "0");
+        const label = new Date(2000, index, 1).toLocaleString("en-US", { month: "short" });
+        return `<option value="${value}">${label}</option>`;
+      }).join("")}`;
+      updateDobDays();
+    }
+
+    function updateDobDays() {
+      const selected = $("pf-dob-day").value;
+      const count = daysInMonth($("pf-dob-year").value, $("pf-dob-month").value);
+      $("pf-dob-day").innerHTML = `<option value="">Day</option>${Array.from({ length: count }, (_, index) => {
+        const day = String(index + 1).padStart(2, "0");
+        return `<option value="${day}">${index + 1}</option>`;
+      }).join("")}`;
+      if (Number(selected) <= count) $("pf-dob-day").value = selected;
     }
 
     function showToast(message) {
@@ -1174,7 +1369,7 @@
       if (code.includes("unauthorized-domain")) return "This domain is not authorized in Firebase Auth. Add your local/deployed domain in Firebase Console > Authentication > Settings.";
       if (code.includes("popup-blocked")) return "The popup was blocked. Redirect sign-in is starting instead.";
       if (code.includes("popup-closed")) return "The Google sign-in window was closed before completion.";
-      if (code.includes("invalid-credential") || code.includes("wrong-password")) return "Email or password is incorrect.";
+      if (code.includes("invalid-credential") || code.includes("wrong-password")) return "Email/password sign-in was not accepted. If this email was first connected with Google, sign in with Google and set an Ascetic password in Profile.";
       if (code.includes("user-not-found")) return "No account exists for that email yet.";
       if (code.includes("email-already-in-use")) return "That email is already registered. Use Login instead.";
       if (code.includes("operation-not-allowed")) return "This sign-in method is not enabled in Firebase Authentication.";
@@ -1183,9 +1378,14 @@
 
     function validatePassword(password) {
       if (password.length < 6) return "Password must be at least 6 characters.";
-      if (/^[0-9]/.test(password)) return "Password must not start with a number.";
-      if (!/^[A-Za-z][A-Za-z0-9.]*$/.test(password)) return "Password must start with a letter and may only contain letters, numbers, and period (.).";
       return "";
+    }
+
+    function finishAuth(message) {
+      clearAuthStatus();
+      bootApp();
+      setTimeout(() => syncFromFirestore(), 200);
+      showToast(message);
     }
 
     function setAuthVisible(isAuthed) {
@@ -1193,6 +1393,8 @@
       $("app").classList.toggle("hidden", !isAuthed);
       document.body.classList.toggle("tier-layout-active", isAuthed);
     }
+
+    if (cachedUser) setAuthVisible(true);
 
     function mergeAuthProfile(userProfile) {
       currentUser = userProfile;
@@ -1233,7 +1435,7 @@
         button.lastChild.textContent = " Opening Google...";
         const credential = await signInWithPopup(auth, provider);
         mergeAuthProfile(toUserProfile(credential.user));
-        showAuthStatus("Google sign-in complete. Loading your dashboard...", false);
+        finishAuth("Google sign-in complete.");
       } catch (error) {
         const message = friendlyAuthError(error);
         showAuthStatus(message);
@@ -1257,7 +1459,7 @@
       try {
         const credential = await signInWithEmailAndPassword(auth, email, password);
         mergeAuthProfile(toUserProfile(credential.user));
-        showAuthStatus("Login complete. Loading your dashboard...", false);
+        finishAuth("Login complete.");
       } catch (error) {
         showAuthStatus(friendlyAuthError(error));
       } finally {
@@ -1293,9 +1495,7 @@
           photoURL: "",
         };
         mergeAuthProfile(userProfile);
-        showAuthStatus("Account created. Loading your dashboard...", false);
-        bootApp();
-        await syncFromFirestore();
+        finishAuth("Account created.");
       } catch (error) {
         showAuthStatus(friendlyAuthError(error));
       } finally {
@@ -1308,7 +1508,7 @@
       .then((result) => {
         if (result?.user) {
           mergeAuthProfile(toUserProfile(result.user));
-          showAuthStatus("Google sign-in complete. Loading your dashboard...", false);
+          finishAuth("Google sign-in complete.");
         }
       })
       .catch((error) => showAuthStatus(friendlyAuthError(error)));
@@ -1316,8 +1516,8 @@
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         mergeAuthProfile(toUserProfile(user));
-        await syncFromFirestore();
-        bootApp();
+        bootApp(); // render immediately with local data
+        setTimeout(() => syncFromFirestore(), 200); // sync in background
       } else if (LS.get(KEYS.user, null)) {
         bootApp();
       } else {
@@ -1327,9 +1527,12 @@
 
     function bootApp() {
       setAuthVisible(true);
-      $("today-date").textContent = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+      updateClock();
+      clearInterval(bootApp._clock);
+      bootApp._clock = setInterval(updateClock, 1000);
       renderAvatar();
       buildMetricFields();
+      hydrateDobOptions();
       hydrateProfileForm();
       hydratePrefs();
       renderHome();
@@ -1340,6 +1543,14 @@
       $("offline-banner").classList.toggle("show", !isOnline);
       navigate("home");
     }
+
+    function updateClock() {
+      const now = new Date();
+      $("today-date").textContent = now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+      $("live-clock").textContent = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" });
+    }
+
+    if (cachedUser) bootApp();
 
     function renderAvatar() {
       const avatar = $("top-avatar");
@@ -1438,22 +1649,45 @@
             <label for="f-${id}">${label}</label>
             <span class="range-value" id="f-${id}-val">0.0${id === "caffeine" ? " cups" : "h"}</span>
           </div>
-          <input id="f-${id}" type="range" min="0" max="${id === "caffeine" ? "10" : "24"}" step="0.1" value="0" required />
+          <input id="f-${id}" type="range" min="0" max="${id === "caffeine" ? "10" : "24"}" step="${id === "caffeine" ? "0.5" : "0.1"}" value="0" required />
+          <div class="range-note" id="f-${id}-note"></div>
         </div>
       `).join("");
       metricDefs.forEach(([id]) => {
         const input = $(`f-${id}`);
         const value = $(`f-${id}-val`);
         input.addEventListener("input", () => {
-          value.textContent = `${Number(input.value).toFixed(1)}${id === "caffeine" ? " cups" : "h"}`;
+          updateMetricSliderLimits();
         });
       });
+      updateMetricSliderLimits();
+    }
+
+    function currentHourTotal(exceptId = "") {
+      return hourMetricIds.reduce((sum, id) => sum + (id === exceptId ? 0 : Number($(`f-${id}`)?.value || 0)), 0);
+    }
+
+    function updateMetricSliderLimits() {
+      hourMetricIds.forEach((id) => {
+        const input = $(`f-${id}`);
+        const max = Math.max(Number(input.value || 0), 24 - currentHourTotal(id));
+        input.max = max.toFixed(1);
+        if (Number(input.value) > max) input.value = max.toFixed(1);
+        $(`f-${id}-val`).textContent = `${Number(input.value).toFixed(1)}h`;
+        $(`f-${id}-note`).textContent = `Max ${Number(input.max).toFixed(1)}h remaining in the 24-hour day.`;
+      });
+      const caffeine = $("f-caffeine");
+      caffeine.max = "10";
+      caffeine.step = "0.5";
+      $("f-caffeine-val").textContent = `${Number(caffeine.value).toFixed(1)} cups`;
+      $("f-caffeine-note").textContent = "Max 10 cups, in 0.5-cup steps.";
     }
 
     function openLogModal() {
-      $("log-date").value = todayISO();
-      $("log-date").max = todayISO();
-      $("log-date").min = todayISO();
+      const date = activeLogDate();
+      $("log-date").value = date;
+      $("log-date").max = date;
+      $("log-date").min = date;
       $("log-warning").classList.remove("show");
       $("log-warning").textContent = "Incomplete data fields detected. Enter '0' if you did not utilize any hours for that category.";
       $("log-modal").classList.add("open");
@@ -1484,18 +1718,37 @@
       button.disabled = true;
       button.textContent = "Logging...";
       try {
-        const result = await predictSafely(form);
-        const entry = { ts: Date.now(), date, form, result, uid: currentUser?.uid || "local" };
-        logs = [entry, ...logs.filter((log) => log.date !== entry.date)].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 365);
+        // Show heuristic instantly — don't wait for API
+        const quickResult = heuristicPredict(form);
+        const entry = { ts: Date.now(), date, streakDate: activeStreakDate(), form, result: quickResult, uid: currentUser?.uid || "local" };
+        detoxPromptedAt = Date.now();
+        logs = [entry, ...logs.filter((log) => log.date !== entry.date)]
+          .sort((a, b) => b.date.localeCompare(a.date)).slice(0, 365);
         saveUserValue(KEYS.logs, logs);
-        if (isOnline && auth.currentUser) {
-          setDoc(doc(db, "users", auth.currentUser.uid, "logs", entry.date), { ...entry, serverTs: serverTimestamp() }).catch(console.warn);
-        }
         closeLogModal();
-        renderHome();
-        renderStats();
-        renderStreak();
+        renderHome(); renderStats(); renderStreak(); renderChecklist(quickResult.focus_score);
         showToast("Log saved.");
+
+        // Upgrade with real API result in background
+        if (isOnline) {
+          predictSafely(form).then((apiResult) => {
+            entry.result = apiResult;
+            logs[0] = entry;
+            saveUserValue(KEYS.logs, logs);
+            if (isOnline && auth.currentUser) {
+              setDoc(doc(db, "users", auth.currentUser.uid, "logs", entry.date),
+                { ...entry, serverTs: serverTimestamp() }).catch(console.warn);
+            }
+            renderHome(); renderStats(); renderStreak(); renderChecklist(apiResult.focus_score);
+            showToast("AI prediction ready!");
+          }).catch(() => {
+            // Keep heuristic silently, still save to Firestore
+            if (isOnline && auth.currentUser) {
+              setDoc(doc(db, "users", auth.currentUser.uid, "logs", entry.date),
+                { ...entry, serverTs: serverTimestamp() }).catch(console.warn);
+            }
+          });
+        }
       } catch (error) {
         showToast(error.message || "Log could not be saved.");
       } finally {
@@ -1510,7 +1763,7 @@
         const raw = $(`f-${id}`).value;
         if (raw === "") return null;
         const value = Number(raw);
-        if (Number.isNaN(value) || value < 0 || value > 24) return null;
+        if (Number.isNaN(value) || value < 0 || value > (id === "caffeine" ? 10 : 24)) return null;
         form[id] = value;
       }
       return form;
@@ -1522,7 +1775,7 @@
 
     function validateLog(date, form) {
       if (!date || !form) return "Incomplete data fields detected. Enter '0' if you did not utilize any hours for that category.";
-      if (date !== todayISO()) return "Only today's date can be logged to keep streaks accurate.";
+      if (date !== activeLogDate()) return "Only yesterday's date can be logged so you can count the full day's hours.";
       const total = metricDefs
         .filter(([id]) => id !== "caffeine")
         .reduce((sum, [id]) => sum + Number(form[id] || 0), 0);
@@ -1536,7 +1789,7 @@
       if (!isOnline) return heuristicPredict(form);
       try {
         const result = await callPredict(form);
-        return normalizeResult(result);
+        return ensureCategoryNudge(normalizeResult(result), form);
       } catch (error) {
         console.warn("[predict fallback]", error);
         return heuristicPredict(form);
@@ -1565,11 +1818,15 @@
       let lastError = null;
       for (const base of API_BASES) {
         try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 3500);
           const response = await fetch(`${base}/predict`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
+            signal: controller.signal,
           });
+          clearTimeout(timeout);
           if (!response.ok) {
             const detail = await response.json().catch(() => ({}));
             throw new Error(detail.detail || `API error ${response.status}`);
@@ -1617,6 +1874,14 @@
       };
     }
 
+    function ensureCategoryNudge(result, form) {
+      const tips = lifestyleSuggestions(form).all.filter((tip) => !result.nudge.includes(tip));
+      if (tips.length && (result.focus_score >= 95 || result.exam_score >= 98 || form.caffeine > 4)) {
+        result.nudge = `${result.nudge} ${tips[0]}`;
+      }
+      return result;
+    }
+
     function cleanNudge(nudge, exam, tier) {
       const fallback = `Based on your habits, your projected passing rate is ${exam}%.`;
       if (!nudge) return fallback;
@@ -1641,7 +1906,7 @@
     function buildLifestyleNudge(form, focus, exam) {
       const suggestions = lifestyleSuggestions(form);
       if (exam >= 98 || focus >= 95) {
-        return `Based on your habits, your projected passing rate is ${exam}%. ${suggestions.best}`;
+        return `Based on your habits, your projected passing rate is ${exam}%. ${suggestions.all.slice(0, 2).join(" ")}`;
       }
       const topDistraction = [
         ["social media", form.social],
@@ -1657,44 +1922,44 @@
 
     function lifestyleSuggestions(form) {
       const items = [];
+      if (form.caffeine > 4) items.push("Caffeine is high; keep it earlier in the day, drink water between cups, and stop before late afternoon so sleep quality does not drop.");
       if (form.sleep < 7) items.push("Your sleep is low; aim for 7-9 hours so memory consolidation can catch up with your study effort.");
       if (form.gaming > 2) items.push("Gaming is taking a noticeable block of the day; cap it after your hardest study task is complete.");
       if (form.streaming > 2) items.push("Streaming can quietly stretch longer than planned; use a single-episode limit before sleep.");
       if (form.social > 2) items.push("Social media is a high-switching habit; batch it into one short window instead of checking between study sessions.");
       if (form.exercise < 0.5) items.push("Add at least a short walk or stretch block to improve energy and attention.");
       if (form.study >= 4 && form.sleep < 6) items.push("High study hours with short sleep can backfire; protect rest so studying turns into recall.");
+      if (form.study < 1) items.push("Study time is very low; start with one short printed-note review before opening leisure apps.");
       if (!items.length) items.push("Your balance is strong; keep the same routine and add short breaks so the habit remains sustainable.");
       return { all: items, best: items[0] };
     }
 
-    function getTodayLog() {
-      return logs.find((log) => log.date === todayISO()) || null;
+    function getActiveLog() {
+      return logs.find((log) => log.date === activeLogDate()) || null;
     }
 
     function renderHome() {
-      const last = getTodayLog();
+      const last = getActiveLog();
       document.body.classList.remove("tier-1", "tier-2", "tier-3");
       if (!last) {
         $("home-summary").className = "card soft";
-        $("home-title").textContent = "No data recorded for today.";
-        $("home-message").textContent = "Please log your metrics to reveal tomorrow's focus and passing projections.";
-        $("focus-metric").textContent = "--%";
+        $("home-title").textContent = "No data recorded for yesterday.";
+        $("home-message").textContent = "Log yesterday's metrics to reveal today's focus and passing projections.";
         $("exam-metric").textContent = "--%";
         $("study-metric").textContent = "--h";
         $("sleep-metric").textContent = "--h";
         document.querySelectorAll(".metric-value").forEach((el) => el.classList.add("blurred"));
         updateRing(0, true);
         $("nudge-card").className = "card section";
-        $("nudge-card").innerHTML = `<p class="eyebrow">AI nudge</p><p class="desc">No data recorded for today. Please log your metrics to reveal tomorrow's focus and passing projections.</p>`;
+        $("nudge-card").innerHTML = `<p class="eyebrow">AI nudge</p><p class="desc">No data recorded for yesterday. Please log yesterday's metrics to reveal today's focus and passing projections.</p>`;
       } else {
         const { result, form } = last;
         const tier = tiers[result.tier];
         document.body.classList.add(`tier-${result.tier}`);
-        $("detox-panel").style.display = "";
+        $("detox-panel").style.display = result.focus_score <= 30 ? "" : "none";
         $("home-summary").className = `card ${tier.className}`;
         $("home-title").textContent = `${tier.label}: ${result.focus_score}% focus`;
         $("home-message").textContent = tier.message;
-        $("focus-metric").textContent = `${result.focus_score}%`;
         $("exam-metric").textContent = `${result.exam_score}%`;
         $("study-metric").textContent = `${form.study}h`;
         $("sleep-metric").textContent = `${form.sleep}h`;
@@ -1704,10 +1969,11 @@
         $("nudge-card").innerHTML = `<p class="eyebrow">AI nudge</p><p class="desc">${result.nudge}</p>`;
       }
 
-      $("recent-list").innerHTML = last ? todayBreakdown(last) : `<p class="desc">No log breakdown for today yet.</p>`;
+      $("recent-list").innerHTML = last ? todayBreakdown(last) : `<p class="desc">No log breakdown for yesterday yet.</p>`;
       document.querySelectorAll("[data-home-category]").forEach((button) => {
         button.addEventListener("click", () => openCategoryModal(last, button.dataset.homeCategory));
       });
+      renderChecklist(last?.result?.focus_score);
     }
 
     function updateRing(score, empty = false, color = "#A8DF8E") {
@@ -1735,18 +2001,22 @@
           ${categoryDefs.map(([key, label]) => `
             <button class="breakdown-card" type="button" data-home-category="${key}">
               <span>${label}</span>
-              <strong>${Number(log.form[key] || 0).toFixed(1)}h</strong>
+              <strong>${formatMetricValue(key, log.form[key])}</strong>
             </button>
           `).join("")}
         </div>
       `;
     }
 
+    function formatMetricValue(key, value) {
+      return `${Number(value || 0).toFixed(1)}${key === "caffeine" ? " cups" : "h"}`;
+    }
+
     function openCategoryModal(log, key) {
       if (!log) return;
       const label = categoryDefs.find(([id]) => id === key)?.[1] || key;
       $("category-date").textContent = `${fmtDate(log.date)} - Focus ${log.result.focus_score}%`;
-      $("category-title").textContent = `${label}: ${Number(log.form[key] || 0).toFixed(1)}h`;
+      $("category-title").textContent = `${label}: ${formatMetricValue(key, log.form[key])}`;
       $("category-suggestion").textContent = categorySuggestion(log.form, key);
       $("category-modal").classList.add("open");
       $("category-modal").setAttribute("aria-hidden", "false");
@@ -1801,9 +2071,10 @@
           const label = categoryDefs.find(([id]) => id === key)?.[1] || key;
           $(`stats-detail-${key}`).innerHTML = log ? `
             <p class="eyebrow">${fmtDate(log.date)} details</p>
-            <h2>${label}: ${Number(log.form[key] || 0).toFixed(1)}${key === "caffeine" ? " cups" : "h"}</h2>
+            <h2>${label}: ${formatMetricValue(key, log.form[key])}</h2>
             <p class="desc">Focus Rate: ${log.result.focus_score}%</p>
             <p class="desc">Passing Rate: ${log.result.exam_score}%</p>
+            <p class="desc">AI Nudge: ${log.result.nudge || buildLifestyleNudge(log.form, log.result.focus_score, log.result.exam_score)}</p>
           ` : `<p class="desc">No log found for that bar.</p>`;
         });
       });
@@ -1811,26 +2082,30 @@
     }
 
     function categoryChart(items, key, label, className) {
-      const max = Math.max(1, ...items.map((item) => Number(item.form[key] || 0)));
+      const max = key === "caffeine" ? 10 : 24;
+      const axis = key === "caffeine" ? "Cups" : "Hours";
       return `
         <div class="card chart-card">
           <p class="eyebrow">${label}</p>
           <h2>Last 7 days</h2>
-          <div class="chart">
-            ${items.map((item) => {
-              const value = Number(item.form[key] || 0);
-              return `
-                <div class="day-col">
-                  <button class="bar-button" type="button" data-stat-bar="1" data-key="${key}" data-date="${item.date}" aria-label="${label} ${value.toFixed(1)} hours on ${fmtDate(item.date)}">
-                    <span class="bar ${className}" style="height:${Math.max(4, (value / max) * 100)}%"></span>
-                  </button>
-                  <div class="day-label">${fmtDate(item.date).split(" ")[1]}</div>
-                </div>
-              `;
-            }).join("")}
+          <div class="chart-wrap">
+            <div class="axis-label">${axis}</div>
+            <div class="chart">
+              ${items.map((item) => {
+                const value = Number(item.form[key] || 0);
+                return `
+                  <div class="day-col">
+                    <button class="bar-button" type="button" data-stat-bar="1" data-key="${key}" data-date="${item.date}" aria-label="${label} ${formatMetricValue(key, value)} on ${fmtDate(item.date)}">
+                      <span class="bar ${className}" style="height:${Math.max(4, (value / max) * 100)}%"></span>
+                    </button>
+                    <div class="day-label">${fmtDate(item.date).split(" ")[1]}</div>
+                  </div>
+                `;
+              }).join("")}
+            </div>
           </div>
           <div class="card-sm" id="stats-detail-${key}" style="margin-top:12px">
-            <p class="desc">Click a bar to view focus and passing rates.</p>
+            <p class="desc">Click a bar to view focus, passing rate, and AI nudge.</p>
           </div>
         </div>
       `;
@@ -1841,10 +2116,10 @@
     }
 
     function calcCurrentStreak() {
-      const dates = new Set(logs.map((log) => log.date));
+      const dates = new Set(logs.map((log) => log.streakDate || log.date));
       let streak = 0;
       const cursor = new Date();
-      while (dates.has(cursor.toISOString().slice(0, 10))) {
+      while (dates.has(localISO(cursor))) {
         streak += 1;
         cursor.setDate(cursor.getDate() - 1);
       }
@@ -1854,17 +2129,17 @@
     function renderStreak(selectedDate = "") {
       const streak = calcCurrentStreak();
       $("streak-title").textContent = `${streak}-day streak`;
-      $("streak-message").textContent = streak ? "Nice rhythm. Keep logging daily to protect the streak." : "Log today's activities to start your streak.";
+      $("streak-message").textContent = streak ? "Nice rhythm. Keep logging daily to protect the streak." : "Log yesterday's activities today to start your streak.";
       const today = new Date();
       const year = today.getFullYear();
       const month = today.getMonth();
       const first = new Date(year, month, 1);
       const last = new Date(year, month + 1, 0);
-      const logged = new Map(logs.map((log) => [log.date, log]));
+      const logged = new Map(logs.map((log) => [log.streakDate || log.date, log]));
       const cells = [];
       for (let i = 0; i < first.getDay(); i += 1) cells.push(`<span></span>`);
       for (let day = 1; day <= last.getDate(); day += 1) {
-        const iso = new Date(year, month, day, 12).toISOString().slice(0, 10);
+        const iso = localISO(new Date(year, month, day, 12));
         const hasLog = logged.has(iso);
         cells.push(`
           <button class="calendar-cell ${hasLog ? "logged" : ""} ${selectedDate === iso ? "selected" : ""}" type="button" data-calendar-date="${iso}" ${hasLog ? "" : "disabled"}>
@@ -1899,7 +2174,11 @@
       $("pf-first").value = profile.firstName || "";
       $("pf-last").value = profile.lastName || "";
       $("pf-email").value = profile.email || "";
-      $("pf-dob").value = profile.dob || "";
+      const dob = parseDob(profile.dob);
+      $("pf-dob-year").value = dob.year;
+      $("pf-dob-month").value = dob.month;
+      updateDobDays();
+      $("pf-dob-day").value = dob.day;
       $("pf-age").value = profile.age || calculateAge(profile.dob);
       selectedSex = profile.sex || "Male";
       document.querySelectorAll("[data-sex]").forEach((button) => {
@@ -1911,11 +2190,20 @@
       $("pf-motivation").value = profile.motivationLevel || "Medium";
       $("pf-mental").value = profile.mentalHealth || "Average";
       $("pf-parent-education").value = profile.parentEducation || "Bachelors";
+      $("current-password").value = "";
+      $("new-password").value = "";
+      $("google-password-advice").classList.toggle("hidden", !shouldAdviseAsceticPassword());
       $("occupation-other-wrap").classList.toggle("hidden", $("pf-occupation").value !== "Other");
       setProfileEditing(profileEditing);
     }
 
-    $("pf-dob").addEventListener("change", () => { $("pf-age").value = calculateAge($("pf-dob").value); });
+    ["pf-dob-year", "pf-dob-month"].forEach((id) => {
+      $(id).addEventListener("change", () => {
+        updateDobDays();
+        $("pf-age").value = calculateAge(buildDob());
+      });
+    });
+    $("pf-dob-day").addEventListener("change", () => { $("pf-age").value = calculateAge(buildDob()); });
     $("pf-occupation").addEventListener("change", () => $("occupation-other-wrap").classList.toggle("hidden", $("pf-occupation").value !== "Other"));
     document.querySelectorAll("[data-sex]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -1928,10 +2216,13 @@
 
     function setProfileEditing(isEditing) {
       profileEditing = isEditing;
-      ["pf-first", "pf-last", "pf-dob", "pf-occupation", "pf-internet", "pf-occupation-other", "pf-motivation", "pf-mental", "pf-parent-education"].forEach((id) => {
+      ["pf-first", "pf-last", "pf-dob-year", "pf-dob-month", "pf-dob-day", "pf-occupation", "pf-internet", "pf-occupation-other", "pf-motivation", "pf-mental", "pf-parent-education"].forEach((id) => {
         const el = $(id);
         if (el) el.disabled = !isEditing;
       });
+      $("current-password").disabled = !isEditing;
+      $("new-password").disabled = !isEditing;
+      $("new-password-wrap").classList.toggle("hidden", !isEditing);
       document.querySelectorAll("[data-sex]").forEach((button) => { button.disabled = !isEditing; });
       $("edit-profile-btn").classList.toggle("hidden", isEditing);
       $("save-profile-btn").classList.toggle("hidden", !isEditing);
@@ -1939,29 +2230,61 @@
       $("profile-heading").textContent = isEditing ? "Edit profile" : "Your account";
     }
 
-    $("profile-form").addEventListener("submit", (event) => {
-      event.preventDefault();
-      profile = {
-        ...profile,
-        firstName: $("pf-first").value.trim() || profile.firstName,
-        lastName: $("pf-last").value.trim() || profile.lastName,
-        dob: $("pf-dob").value,
-        age: calculateAge($("pf-dob").value),
-        sex: selectedSex || "Male",
-        occupation: $("pf-occupation").value,
-        occupationOther: $("pf-occupation-other").value.trim(),
-        internetQuality: $("pf-internet").value,
-        motivationLevel: $("pf-motivation").value,
-        mentalHealth: $("pf-mental").value,
-        parentEducation: $("pf-parent-education").value,
-      };
-      saveUserValue(KEYS.profile, profile);
-      if (auth.currentUser) {
-        updateProfile(auth.currentUser, { displayName: `${profile.firstName} ${profile.lastName}`.trim() }).catch(console.warn);
+    function hasPasswordProvider() {
+      return !!auth.currentUser?.providerData?.some((providerInfo) => providerInfo.providerId === "password");
+    }
+
+    function shouldAdviseAsceticPassword() {
+      return !!auth.currentUser?.providerData?.some((providerInfo) => providerInfo.providerId === "google.com") && !hasPasswordProvider();
+    }
+
+    async function savePasswordIfNeeded() {
+      const currentPassword = $("current-password").value;
+      const newPassword = $("new-password").value;
+      if (!newPassword) return "";
+      const passwordError = validatePassword(newPassword);
+      if (passwordError) throw new Error(passwordError);
+      if (!auth.currentUser?.email) throw new Error("Password changes require an active email login.");
+      const alreadyHasPassword = hasPasswordProvider();
+      if (alreadyHasPassword) {
+        if (!currentPassword) throw new Error("Enter your current password first.");
+        const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+        await reauthenticateWithCredential(auth.currentUser, credential);
       }
-      setProfileEditing(false);
-      showToast("Profile saved.");
-      renderHome();
+      await updatePassword(auth.currentUser, newPassword);
+      $("current-password").value = "";
+      $("new-password").value = "";
+      return alreadyHasPassword ? " Password updated." : " Ascetic password set.";
+    }
+
+    $("profile-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        const passwordMessage = await savePasswordIfNeeded();
+        profile = {
+          ...profile,
+          firstName: $("pf-first").value.trim() || profile.firstName,
+          lastName: $("pf-last").value.trim() || profile.lastName,
+          dob: buildDob(),
+          age: calculateAge(buildDob()),
+          sex: selectedSex || "Male",
+          occupation: $("pf-occupation").value,
+          occupationOther: $("pf-occupation-other").value.trim(),
+          internetQuality: $("pf-internet").value,
+          motivationLevel: $("pf-motivation").value,
+          mentalHealth: $("pf-mental").value,
+          parentEducation: $("pf-parent-education").value,
+        };
+        saveUserValue(KEYS.profile, profile);
+        if (auth.currentUser) {
+          updateProfile(auth.currentUser, { displayName: `${profile.firstName} ${profile.lastName}`.trim() }).catch(console.warn);
+        }
+        setProfileEditing(false);
+        showToast(`Profile saved.${passwordMessage}`);
+        renderHome();
+      } catch (error) {
+        showToast(error.message || friendlyAuthError(error));
+      }
     });
 
     function hydratePrefs() {
@@ -2006,34 +2329,6 @@
       $(id).addEventListener("change", savePrefsRealtime);
     });
 
-    $("update-password-btn").addEventListener("click", async () => {
-      const currentPassword = $("current-password").value;
-      const newPassword = $("new-password").value;
-      const passwordError = validatePassword(newPassword);
-      if (!currentPassword) {
-        showToast("Enter your current password first.");
-        return;
-      }
-      if (passwordError) {
-        showToast(passwordError);
-        return;
-      }
-      if (!auth.currentUser?.email) {
-        showToast("Password changes require an active email login.");
-        return;
-      }
-      try {
-        const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
-        await reauthenticateWithCredential(auth.currentUser, credential);
-        await updatePassword(auth.currentUser, newPassword);
-        $("current-password").value = "";
-        $("new-password").value = "";
-        showToast("Password updated.");
-      } catch (error) {
-        showToast(friendlyAuthError(error));
-      }
-    });
-
     $("logout-btn").addEventListener("click", async () => {
       await signOut(auth).catch(() => {});
       LS.remove(KEYS.user);
@@ -2067,16 +2362,25 @@
       scheduleSystems._interval = setInterval(() => {
         const now = new Date();
         const hhmm = now.toTimeString().slice(0, 5);
-        const todayKey = now.toISOString().slice(0, 10);
+        const todayKey = localISO(now);
         if (prefs.push && prefs.reminder === hhmm && reminderLastFired !== todayKey) {
           reminderLastFired = todayKey;
           notify("Ascetic reminder", "Record your daytime metrics before sleeping.");
         }
-        if (prefs.push && Date.now() - breakTimerStartedAt >= 55 * 60 * 1000) {
-          breakTimerStartedAt = Date.now();
-          notify("Cognitive reset", "Take a 5-minute active break.");
+        const active = getActiveLog();
+        const interval = detoxRepeatInterval(active?.result?.focus_score);
+        if (interval && Date.now() - detoxPromptedAt >= interval) {
+          detoxPromptedAt = Date.now();
+          openDetoxPanel();
+          notify("Digital Detox Mode", "Step away from screens and complete an offline reset.");
         }
       }, 30000);
+    }
+
+    function detoxRepeatInterval(focusScore) {
+      const focus = Number(focusScore);
+      if (!Number.isFinite(focus) || focus > 30) return 0;
+      return focus <= 15 ? 4 * 60 * 60 * 1000 : 3 * 60 * 60 * 1000;
     }
 
     function notify(title, body) {
@@ -2085,15 +2389,37 @@
       if (prefs.sound) showToast(body);
     }
 
-    function renderChecklist() {
-      const defaults = [
-        "Clear your desk",
-        "Write the next study task on paper",
-        "Read printed notes for 10 minutes",
-        "Do a 5-minute stretch",
-      ];
-      const saved = LS.get(KEYS.checklist, defaults.map((text) => ({ text, done: false })));
-      $("detox-checklist").innerHTML = saved.map((item, index) => `
+    function checklistCountForFocus(focusScore) {
+      const focus = Number(focusScore);
+      if (!Number.isFinite(focus)) return 4;
+      if (focus <= 10) return 10;
+      if (focus <= 20) return 8;
+      if (focus <= 30) return 4;
+      return 4;
+    }
+
+    function seededChecklistItems(count, seed) {
+      let hash = 2166136261;
+      for (let i = 0; i < seed.length; i += 1) {
+        hash ^= seed.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+      const items = [...detoxTasks];
+      for (let i = items.length - 1; i > 0; i -= 1) {
+        hash = Math.imul(hash ^ (hash >>> 15), 2246822507);
+        const j = Math.abs(hash) % (i + 1);
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      return items.slice(0, count);
+    }
+
+    function renderChecklist(focusScore = getActiveLog()?.result?.focus_score) {
+      updateDetoxMode(focusScore);
+      const count = checklistCountForFocus(focusScore);
+      const seed = `${activeStreakDate()}_${count}_${userStorageId()}_${checklistShuffle}`;
+      const done = LS.get(KEYS.checklistDone, {});
+      const selected = seededChecklistItems(count, seed).map((text) => ({ text, done: !!done[text] }));
+      $("detox-checklist").innerHTML = selected.map((item, index) => `
         <label class="check-row">
           <input type="checkbox" data-check="${index}" ${item.done ? "checked" : ""} />
           <span>${item.text}</span>
@@ -2101,11 +2427,58 @@
       `).join("");
       document.querySelectorAll("[data-check]").forEach((input) => {
         input.addEventListener("change", () => {
-          const list = LS.get(KEYS.checklist, saved);
-          list[Number(input.dataset.check)].done = input.checked;
-          LS.set(KEYS.checklist, list);
+          const updated = LS.get(KEYS.checklistDone, {});
+          updated[selected[Number(input.dataset.check)].text] = input.checked;
+          LS.set(KEYS.checklistDone, updated);
+          updateChecklistCompletion();
         });
       });
+      updateChecklistCompletion();
+    }
+
+    function updateDetoxMode(focusScore = getActiveLog()?.result?.focus_score) {
+      const focus = Number(focusScore);
+      const safe = Number.isFinite(focus) && focus > 30;
+      $("detox-panel").classList.toggle("safe", safe);
+      $("detox-label").textContent = safe ? "Digital Detox Mode - Safe" : "Digital Detox Mode";
+      $("detox-message").textContent = safe
+        ? `Your latest focus score is ${focus}%, which is above the detox threshold. This reset is optional if you still want a quiet screen break.`
+        : Number.isFinite(focus)
+          ? `Your latest focus score is ${focus}%. Step away from high-stimulation screens and complete a short offline reset.`
+          : "Use this optional reset to step away from screens and refresh your focus.";
+    }
+
+    function updateChecklistCompletion() {
+      const checks = [...document.querySelectorAll("[data-check]")];
+      const complete = checks.length > 0 && checks.every((input) => input.checked);
+      $("detox-complete").classList.toggle("show", complete);
+    }
+
+    function formatPomodoro(secondsLeft) {
+      const minutes = Math.floor(secondsLeft / 60).toString().padStart(2, "0");
+      const seconds = (secondsLeft % 60).toString().padStart(2, "0");
+      return `${minutes}:${seconds}`;
+    }
+
+    function updateTimerUI() {
+      $("pomodoro-time").textContent = formatPomodoro(pomodoroLeft);
+      const elapsed = POMODORO_TOTAL - pomodoroLeft;
+      $("timer-progress-fill").style.width = `${Math.max(0, Math.min(100, (elapsed / POMODORO_TOTAL) * 100))}%`;
+    }
+
+    function resetPomodoro() {
+      clearInterval(pomodoroTimer);
+      pomodoroTimer = null;
+      pomodoroLeft = POMODORO_TOTAL;
+      $("pomodoro-toggle").textContent = "Start";
+      $("pomodoro-stop").textContent = "Stop";
+      updateTimerUI();
+    }
+
+    function openDetoxPanel() {
+      updateDetoxMode();
+      renderChecklist();
+      $("detox-panel").style.display = "block";
     }
 
     $("pomodoro-toggle").addEventListener("click", () => {
@@ -2115,24 +2488,56 @@
         $("pomodoro-toggle").textContent = "Start";
         return;
       }
+      if (pomodoroLeft === 0) pomodoroLeft = POMODORO_TOTAL;
+      $("pomodoro-stop").textContent = "Stop";
       $("pomodoro-toggle").textContent = "Pause";
       pomodoroTimer = setInterval(() => {
         pomodoroLeft = Math.max(0, pomodoroLeft - 1);
-        const minutes = Math.floor(pomodoroLeft / 60).toString().padStart(2, "0");
-        const seconds = (pomodoroLeft % 60).toString().padStart(2, "0");
-        $("pomodoro-time").textContent = `${minutes}:${seconds}`;
+        updateTimerUI();
         if (pomodoroLeft === 0) {
           clearInterval(pomodoroTimer);
           pomodoroTimer = null;
           $("pomodoro-toggle").textContent = "Done";
+          $("pomodoro-stop").textContent = "Restart";
           notify("Pomodoro complete", "Your 25-minute focus reset is complete.");
         }
       }, 1000);
     });
+    $("pomodoro-stop").addEventListener("click", () => {
+      if ($("pomodoro-stop").textContent === "Restart") {
+        resetPomodoro();
+        return;
+      }
+      clearInterval(pomodoroTimer);
+      pomodoroTimer = null;
+      pomodoroLeft = 0;
+      $("pomodoro-toggle").textContent = "Start";
+      $("pomodoro-stop").textContent = "Restart";
+      updateTimerUI();
+    });
     $("streak-focus-btn").addEventListener("click", () => {
-      $("detox-panel").style.display = "block";
+      openDetoxPanel();
+    });
+    $("checklist-shuffle").addEventListener("click", () => {
+      checklistShuffle += 1;
+      renderChecklist();
+    });
+    $("detox-info").addEventListener("click", () => {
+      $("detox-info-modal").classList.add("open");
+      $("detox-info-modal").setAttribute("aria-hidden", "false");
+    });
+    $("close-detox-info").addEventListener("click", () => {
+      $("detox-info-modal").classList.remove("open");
+      $("detox-info-modal").setAttribute("aria-hidden", "true");
+    });
+    $("detox-info-modal").addEventListener("click", (event) => {
+      if (event.target === $("detox-info-modal")) {
+        $("detox-info-modal").classList.remove("open");
+        $("detox-info-modal").setAttribute("aria-hidden", "true");
+      }
     });
     $("detox-close").addEventListener("click", () => $("detox-panel").style.display = "none");
+    updateTimerUI();
   </script>
 </body>
 </html>
