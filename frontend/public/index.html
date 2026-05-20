@@ -971,6 +971,7 @@
               <div class="switch-row"><span>Notification sounds</span><label class="switch"><input id="pref-sound" type="checkbox" /><span class="slider"></span></label></div>
               <div class="switch-row"><span>Vibration feedback</span><label class="switch"><input id="pref-vibrate" type="checkbox" /><span class="slider"></span></label></div>
               <div class="field" style="margin-top:16px"><label for="pref-reminder">Daily reminder</label><input id="pref-reminder" type="time" value="08:00" /></div>
+              <div class="field"><label for="pref-bedtime">Bedtime reminder</label><input id="pref-bedtime" type="time" value="21:00" /></div>
               <p class="desc">The app checks reminder timing while open and tracks a 55-minute reset interval locally.</p>
             </div>
           </div>
@@ -1215,7 +1216,7 @@
       "Set a pleasant but non-distracting background if needed",
       "Check that your room temperature is comfortable",
     ];
-    const defaultPrefs = { push: false, sound: false, vibrate: false, reminder: "08:00" };
+    const defaultPrefs = { push: false, sound: false, vibrate: false, reminder: "08:00", bedtime: "21:00" };
     const cachedUser = LS.get(KEYS.user, null);
     let currentUser = cachedUser;
     let profile = loadUserValue(KEYS.profile, defaultProfile(cachedUser));
@@ -1586,6 +1587,7 @@
         if (prefs.push && "Notification" in window && Notification.permission === "granted") {
           navigator.serviceWorker?.ready.then(saveFCMToken).catch(console.warn);
         }
+        persistNotificationSettings();
       } else if (LS.get(KEYS.user, null)) {
         bootApp();
       } else {
@@ -1723,9 +1725,9 @@
       `).join("");
       metricDefs.forEach(([id]) => {
         const input = $(`f-${id}`);
-        const value = $(`f-${id}-val`);
+        input.dataset.prevValue = input.value || "0";
         input.addEventListener("input", () => {
-          updateMetricSliderLimits();
+          handleMetricSliderInput(id);
         });
       });
       updateMetricSliderLimits();
@@ -1738,17 +1740,46 @@
     function updateMetricSliderLimits() {
       hourMetricIds.forEach((id) => {
         const input = $(`f-${id}`);
-        const max = Math.max(Number(input.value || 0), 24 - currentHourTotal(id));
-        input.max = max.toFixed(1);
-        if (Number(input.value) > max) input.value = max.toFixed(1);
+        input.max = "24";
+        input.dataset.prevValue = input.value || "0";
         $(`f-${id}-val`).textContent = `${Number(input.value).toFixed(1)}h`;
-        $(`f-${id}-note`).textContent = `Max ${Number(input.max).toFixed(1)}h remaining in the 24-hour day.`;
+        $(`f-${id}-note`).textContent = `${Math.max(0, 24 - currentHourTotal()).toFixed(1)}h remaining in the 24-hour day.`;
       });
       const caffeine = $("f-caffeine");
       caffeine.max = "10";
       caffeine.step = "0.5";
       $("f-caffeine-val").textContent = `${Number(caffeine.value).toFixed(1)} cups`;
       $("f-caffeine-note").textContent = "Max 10 cups, in 0.5-cup steps.";
+    }
+
+    function handleMetricSliderInput(id) {
+      const input = $(`f-${id}`);
+      if (id !== "caffeine") {
+        const previous = Number(input.dataset.prevValue || 0);
+        const attempted = Number(input.value || 0);
+        const allowed = Math.max(0, 24 - currentHourTotal(id));
+        if (attempted > allowed) {
+          input.value = Math.min(previous, allowed).toFixed(1);
+          input.dataset.prevValue = input.value;
+          $(`f-${id}-note`).textContent = "24-hour total reached. Reduce another category before increasing this one.";
+        } else {
+          input.dataset.prevValue = input.value;
+          $(`f-${id}-note`).textContent = `${Math.max(0, 24 - currentHourTotal()).toFixed(1)}h remaining in the 24-hour day.`;
+        }
+      }
+
+      metricDefs.forEach(([metricId]) => {
+        const metricInput = $(`f-${metricId}`);
+        if (metricId !== "caffeine") {
+          metricInput.max = "24";
+          $(`f-${metricId}-val`).textContent = `${Number(metricInput.value).toFixed(1)}h`;
+          if (metricId !== id) {
+            $(`f-${metricId}-note`).textContent = `${Math.max(0, 24 - currentHourTotal()).toFixed(1)}h remaining in the 24-hour day.`;
+          }
+        } else {
+          $(`f-caffeine-val`).textContent = `${Number(metricInput.value).toFixed(1)} cups`;
+        }
+      });
     }
 
     function openLogModal() {
@@ -2422,6 +2453,27 @@
       $("pref-sound").checked = !!prefs.sound;
       $("pref-vibrate").checked = !!prefs.vibrate;
       $("pref-reminder").value = prefs.reminder || "08:00";
+      $("pref-bedtime").value = prefs.bedtime || "21:00";
+    }
+
+    async function persistNotificationSettings() {
+      if (!auth.currentUser) return;
+      try {
+        await setDoc(
+          doc(db, "users", auth.currentUser.uid, "settings", "notifications"),
+          {
+            push: !!prefs.push,
+            sound: !!prefs.sound,
+            vibrate: !!prefs.vibrate,
+            reminder: prefs.reminder || "08:00",
+            bedtime: prefs.bedtime || "21:00",
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } catch (error) {
+        console.warn("[notification settings]", error);
+      }
     }
 
     async function savePrefsRealtime() {
@@ -2430,6 +2482,7 @@
         sound: $("pref-sound").checked,
         vibrate: $("pref-vibrate").checked,
         reminder: $("pref-reminder").value || "08:00",
+        bedtime: $("pref-bedtime").value || "21:00",
       };
 
       if (prefs.push) {
@@ -2452,10 +2505,11 @@
       }
 
       saveUserValue(KEYS.prefs, prefs);
+      await persistNotificationSettings();
       scheduleSystems();
     }
 
-    ["pref-push", "pref-sound", "pref-vibrate", "pref-reminder"].forEach((id) => {
+    ["pref-push", "pref-sound", "pref-vibrate", "pref-reminder", "pref-bedtime"].forEach((id) => {
       $(id).addEventListener("change", savePrefsRealtime);
     });
 
@@ -2493,9 +2547,13 @@
         const now = new Date();
         const hhmm = now.toTimeString().slice(0, 5);
         const todayKey = localISO(now);
-        if (prefs.push && prefs.reminder === hhmm && reminderLastFired !== todayKey) {
-          reminderLastFired = todayKey;
+        if (prefs.push && prefs.reminder === hhmm && reminderLastFired !== `daily_${todayKey}`) {
+          reminderLastFired = `daily_${todayKey}`;
           notify("Ascetic daily reminder", "Daily reminder to keep logging yesterday's activities in Ascetic.");
+        }
+        if (prefs.push && (prefs.bedtime || "21:00") === hhmm && reminderLastFired !== `bedtime_${todayKey}`) {
+          reminderLastFired = `bedtime_${todayKey}`;
+          notify("Ascetic bedtime reminder", "Wind down for bedtime. Put screens away and protect tomorrow's focus.");
         }
         const active = getActiveLog();
         const interval = detoxRepeatInterval(active?.result?.focus_score);
@@ -2516,8 +2574,12 @@
 
     function notify(title, body) {
       showDeviceNotification(title, body);
-      if (prefs.vibrate && navigator.vibrate) navigator.vibrate([120, 80, 120]);
+      vibrateDevice([120, 80, 120]);
       if (prefs.sound) showToast(body);
+    }
+
+    function vibrateDevice(pattern = [180, 80, 180, 80, 180]) {
+      if (prefs.vibrate && navigator.vibrate) navigator.vibrate(pattern);
     }
 
     function showDeviceNotification(title, body) {
@@ -2663,6 +2725,7 @@
       if (!Number.isFinite(focus) || focus > 30) return;
       openDetoxPanel();
       startPomodoro();
+      vibrateDevice([220, 100, 220, 100, 220]);
     }
 
     $("pomodoro-toggle").addEventListener("click", () => {

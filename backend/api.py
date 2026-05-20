@@ -76,6 +76,31 @@ def get_yesterday_manila() -> str:
     return (datetime.now(manila) - timedelta(days=1)).strftime("%Y-%m-%d")
 
 
+def get_manila_hhmm() -> str:
+    """Return current Asia/Manila time as HH:MM."""
+    manila = timezone(timedelta(hours=8))
+    return datetime.now(manila).strftime("%H:%M")
+
+
+def get_notification_settings(uid: str) -> dict:
+    """Read per-user reminder settings. Missing settings keep server defaults."""
+    defaults = {"push": True, "reminder": "08:00", "bedtime": "21:00", "vibrate": True}
+    if not firebase_db:
+        return defaults
+    try:
+        snap = (
+            firebase_db.collection("users").doc(uid)
+            .collection("settings").document("notifications").get()
+        )
+        if not snap.exists:
+            return defaults
+        data = snap.to_dict() or {}
+        return {**defaults, **data}
+    except Exception as e:
+        print(f"[settings] Error for uid={uid}: {e}", flush=True)
+        return defaults
+
+
 def send_push_to_user(uid: str, title: str, body: str):
     """Send a push notification to all FCM tokens for a user."""
     if not firebase_db:
@@ -91,6 +116,13 @@ def send_push_to_user(uid: str, title: str, body: str):
 
         message = messaging.MulticastMessage(
             notification=messaging.Notification(title=title, body=body),
+            data={
+                "title": title,
+                "body": body,
+                "url": "https://ascetic-app-ai.web.app/",
+                "tag": "ascetic-reminder",
+                "requireInteraction": "false",
+            },
             webpush=messaging.WebpushConfig(
                 notification=messaging.WebpushNotification(
                     title=title,
@@ -101,6 +133,9 @@ def send_push_to_user(uid: str, title: str, body: str):
                         messaging.WebpushNotificationAction(action="open",    title="Open App"),
                         messaging.WebpushNotificationAction(action="dismiss", title="Dismiss"),
                     ],
+                ),
+                fcm_options=messaging.WebpushFCMOptions(
+                    link="https://ascetic-app-ai.web.app/",
                 ),
             ),
             tokens=tokens,
@@ -156,7 +191,7 @@ def job_cognitive_reset():
 
 
 def job_daily_reminder():
-    """Runs at 8:00 AM Manila time and reminds users to log yesterday's data."""
+    """Immediately sends the daily reminder to every user. Used by manual endpoint."""
     if not firebase_db:
         print("[scheduler] Firebase not ready. Skipping daily reminder.", flush=True)
         return
@@ -187,6 +222,60 @@ def job_daily_reminder():
         print(f"[scheduler] Daily reminder error: {e}", flush=True)
 
 
+def job_due_daily_reminders():
+    """Runs every minute and sends daily reminders at each user's preferred time."""
+    if not firebase_db:
+        return
+
+    now_hhmm = get_manila_hhmm()
+    yesterday = get_yesterday_manila()
+    try:
+        for user_doc in firebase_db.collection("users").stream():
+            uid = user_doc.id
+            settings = get_notification_settings(uid)
+            if settings.get("push") is False or settings.get("reminder", "08:00") != now_hhmm:
+                continue
+            log_ref = (
+                firebase_db.collection("users").doc(uid)
+                .collection("logs").document(yesterday).get()
+            )
+            if log_ref.exists:
+                send_push_to_user(
+                    uid,
+                    "Ascetic check-in complete",
+                    "You logged yesterday's activities. Keep the rhythm going today.",
+                )
+            else:
+                send_push_to_user(
+                    uid,
+                    "Ascetic daily reminder",
+                    "Daily reminder to keep logging yesterday's activities in Ascetic.",
+                )
+    except Exception as e:
+        print(f"[scheduler] Due daily reminder error: {e}", flush=True)
+
+
+def job_due_bedtime_reminders():
+    """Runs every minute and sends bedtime reminders at each user's preferred time."""
+    if not firebase_db:
+        return
+
+    now_hhmm = get_manila_hhmm()
+    try:
+        for user_doc in firebase_db.collection("users").stream():
+            uid = user_doc.id
+            settings = get_notification_settings(uid)
+            if settings.get("push") is False or settings.get("bedtime", "21:00") != now_hhmm:
+                continue
+            send_push_to_user(
+                uid,
+                "Ascetic bedtime reminder",
+                "Wind down for bedtime. Put screens away and protect tomorrow's focus.",
+            )
+    except Exception as e:
+        print(f"[scheduler] Bedtime reminder error: {e}", flush=True)
+
+
 def job_detox_break_reminder():
     """Runs every 55 minutes for users whose yesterday focus score is 30% or below."""
     if not firebase_db:
@@ -198,6 +287,9 @@ def job_detox_break_reminder():
     try:
         for user_doc in firebase_db.collection("users").stream():
             uid = user_doc.id
+            settings = get_notification_settings(uid)
+            if settings.get("push") is False:
+                continue
             log_ref = (
                 firebase_db.collection("users").doc(uid)
                 .collection("logs").document(yesterday).get()
@@ -218,10 +310,11 @@ def job_detox_break_reminder():
 
 def start_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler(timezone="Asia/Manila")
-    scheduler.add_job(job_daily_reminder,       "cron",     hour=8, minute=0, id="daily_reminder")
+    scheduler.add_job(job_due_daily_reminders,  "interval", seconds=60,        id="due_daily_reminders")
+    scheduler.add_job(job_due_bedtime_reminders,"interval", seconds=60,        id="due_bedtime_reminders")
     scheduler.add_job(job_detox_break_reminder, "interval", minutes=55,        id="detox_break_reminder")
     scheduler.start()
-    print("[scheduler] Started - daily: 08:00 | detox break: every 55 min", flush=True)
+    print("[scheduler] Started - reminders: every 1 min | detox break: every 55 min", flush=True)
     return scheduler
 
 

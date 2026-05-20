@@ -18,6 +18,11 @@ function manilaDate(offsetDays = 0) {
   return manila.toISOString().slice(0, 10);
 }
 
+function manilaHHMM() {
+  const manila = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+  return manila.toTimeString().slice(0, 5);
+}
+
 async function userTokens(uid) {
   const tokensSnap = await db.collection("users").doc(uid).collection("tokens").get();
   return {
@@ -26,12 +31,25 @@ async function userTokens(uid) {
   };
 }
 
+async function notificationSettings(uid) {
+  const defaults = { push: true, reminder: "08:00", bedtime: "21:00", vibrate: true };
+  const snap = await db.collection("users").doc(uid).collection("settings").doc("notifications").get();
+  return snap.exists ? { ...defaults, ...snap.data() } : defaults;
+}
+
 async function sendPush(uid, title, body) {
   const { docs, tokens } = await userTokens(uid);
   if (!tokens.length) return;
 
   const response = await messaging.sendEachForMulticast({
     notification: { title, body },
+    data: {
+      title,
+      body,
+      url: "https://ascetic-app-ai.web.app/",
+      tag: "ascetic-reminder",
+      requireInteraction: "false",
+    },
     webpush: {
       notification: {
         title,
@@ -58,13 +76,17 @@ async function sendPush(uid, title, body) {
   });
 }
 
-exports.nightlyReminder = onSchedule("0 8 * * *", { timeZone: "Asia/Manila" }, async () => {
+exports.nightlyReminder = onSchedule("* * * * *", { timeZone: "Asia/Manila" }, async () => {
   try {
+    const now = manilaHHMM();
     const yesterday = manilaDate(-1);
     const usersSnap = await db.collection("users").get();
 
     for (const userDoc of usersSnap.docs) {
       const uid = userDoc.id;
+      const settings = await notificationSettings(uid);
+      if (settings.push === false || (settings.reminder || "08:00") !== now) continue;
+
       const yesterdayLog = await db.collection("users").doc(uid).collection("logs").doc(yesterday).get();
 
       if (yesterdayLog.exists) {
@@ -88,6 +110,29 @@ exports.nightlyReminder = onSchedule("0 8 * * *", { timeZone: "Asia/Manila" }, a
   }
 });
 
+exports.bedtimeReminder = onSchedule("* * * * *", { timeZone: "Asia/Manila" }, async () => {
+  try {
+    const now = manilaHHMM();
+    const usersSnap = await db.collection("users").get();
+
+    for (const userDoc of usersSnap.docs) {
+      const uid = userDoc.id;
+      const settings = await notificationSettings(uid);
+      if (settings.push === false || (settings.bedtime || "21:00") !== now) continue;
+
+      await sendPush(
+        uid,
+        "Ascetic bedtime reminder",
+        "Wind down for bedtime. Put screens away and protect tomorrow's focus."
+      );
+    }
+
+    console.log("[bedtimeReminder] Done.");
+  } catch (error) {
+    console.error("[bedtimeReminder] Error:", error);
+  }
+});
+
 exports.cognitiveReset = onSchedule("every 55 minutes", { timeZone: "Asia/Manila" }, async () => {
   try {
     const yesterday = manilaDate(-1);
@@ -95,6 +140,9 @@ exports.cognitiveReset = onSchedule("every 55 minutes", { timeZone: "Asia/Manila
 
     for (const userDoc of usersSnap.docs) {
       const uid = userDoc.id;
+      const settings = await notificationSettings(uid);
+      if (settings.push === false) continue;
+
       const logSnap = await db.collection("users").doc(uid).collection("logs").doc(yesterday).get();
       if (!logSnap.exists) continue;
 
