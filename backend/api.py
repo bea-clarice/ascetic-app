@@ -70,6 +70,12 @@ def get_today_manila() -> str:
     return datetime.now(manila).strftime("%Y-%m-%d")
 
 
+def get_yesterday_manila() -> str:
+    """Return yesterday's date in Asia/Manila time as YYYY-MM-DD."""
+    manila = timezone(timedelta(hours=8))
+    return (datetime.now(manila) - timedelta(days=1)).strftime("%Y-%m-%d")
+
+
 def send_push_to_user(uid: str, title: str, body: str):
     """Send a push notification to all FCM tokens for a user."""
     if not firebase_db:
@@ -89,7 +95,7 @@ def send_push_to_user(uid: str, title: str, body: str):
                 notification=messaging.WebpushNotification(
                     title=title,
                     body=body,
-                    icon="/icons/icon-192.png",
+                    icon="https://ascetic-app-ai.web.app/icons/icon-192.png",
                     vibrate=[120, 80, 120, 80, 120],
                     actions=[
                         messaging.WebpushNotificationAction(action="open",    title="Open App"),
@@ -121,36 +127,8 @@ def send_push_to_user(uid: str, title: str, body: str):
 # ─── Scheduled Jobs ───────────────────────────────────────────────────────────
 
 def job_nightly_reminder():
-    """
-    Runs at 10:00 PM Manila time.
-    Sends a reminder to users who have not logged today,
-    and a congratulation to those who have.
-    """
-    if not firebase_db:
-        print("[scheduler] Firebase not ready. Skipping nightly reminder.", flush=True)
-        return
-
-    today = get_today_manila()
-    print(f"[scheduler] Nightly reminder — date={today}", flush=True)
-
-    try:
-        for user_doc in firebase_db.collection("users").stream():
-            uid = user_doc.id
-            log_ref = (
-                firebase_db.collection("users").doc(uid)
-                .collection("logs").document(today).get()
-            )
-            if log_ref.exists:
-                title = "Great work today!"
-                body  = "You've logged your habits. Keep the streak alive tomorrow — consistency is everything."
-            else:
-                title = "Ascetic Reminder"
-                body  = "You haven't logged today yet. Record your habits before sleeping to protect your streak."
-
-            send_push_to_user(uid, title, body)
-
-    except Exception as e:
-        print(f"[scheduler] Nightly reminder error: {e}", flush=True)
+    """Backward-compatible wrapper for the renamed daily reminder job."""
+    job_daily_reminder()
 
 
 def job_cognitive_reset():
@@ -177,12 +155,73 @@ def job_cognitive_reset():
         print(f"[scheduler] Cognitive reset error: {e}", flush=True)
 
 
+def job_daily_reminder():
+    """Runs at 8:00 AM Manila time and reminds users to log yesterday's data."""
+    if not firebase_db:
+        print("[scheduler] Firebase not ready. Skipping daily reminder.", flush=True)
+        return
+
+    yesterday = get_yesterday_manila()
+    print(f"[scheduler] Daily reminder date={yesterday}", flush=True)
+
+    try:
+        for user_doc in firebase_db.collection("users").stream():
+            uid = user_doc.id
+            log_ref = (
+                firebase_db.collection("users").doc(uid)
+                .collection("logs").document(yesterday).get()
+            )
+            if log_ref.exists:
+                send_push_to_user(
+                    uid,
+                    "Ascetic check-in complete",
+                    "You logged yesterday's activities. Keep the rhythm going today.",
+                )
+            else:
+                send_push_to_user(
+                    uid,
+                    "Ascetic daily reminder",
+                    "Daily reminder to keep logging yesterday's activities in Ascetic.",
+                )
+    except Exception as e:
+        print(f"[scheduler] Daily reminder error: {e}", flush=True)
+
+
+def job_detox_break_reminder():
+    """Runs every 55 minutes for users whose yesterday focus score is 30% or below."""
+    if not firebase_db:
+        return
+
+    yesterday = get_yesterday_manila()
+    print(f"[scheduler] Detox break reminder firing date={yesterday}", flush=True)
+
+    try:
+        for user_doc in firebase_db.collection("users").stream():
+            uid = user_doc.id
+            log_ref = (
+                firebase_db.collection("users").doc(uid)
+                .collection("logs").document(yesterday).get()
+            )
+            if not log_ref.exists:
+                continue
+            focus_score = float((log_ref.to_dict().get("result") or {}).get("focus_score", 101))
+            if focus_score > 30:
+                continue
+            send_push_to_user(
+                uid,
+                "Digital Detox break",
+                "Take a 5-minute break. Step away from screens and reset your focus.",
+            )
+    except Exception as e:
+        print(f"[scheduler] Detox break reminder error: {e}", flush=True)
+
+
 def start_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler(timezone="Asia/Manila")
-    scheduler.add_job(job_nightly_reminder, "cron",     hour=22, minute=0, id="nightly_reminder")
-    scheduler.add_job(job_cognitive_reset,  "interval", minutes=55,        id="cognitive_reset")
+    scheduler.add_job(job_daily_reminder,       "cron",     hour=8, minute=0, id="daily_reminder")
+    scheduler.add_job(job_detox_break_reminder, "interval", minutes=55,        id="detox_break_reminder")
     scheduler.start()
-    print("[scheduler] Started — nightly: 22:00 | reset: every 55 min", flush=True)
+    print("[scheduler] Started - daily: 08:00 | detox break: every 55 min", flush=True)
     return scheduler
 
 
@@ -483,8 +522,8 @@ def test_notify(uid: str):
 
 @app.post("/notify/nightly", tags=["Notifications"])
 def trigger_nightly():
-    """Manually trigger the nightly reminder. Use to test without waiting for 22:00."""
-    job_nightly_reminder()
+    """Manually trigger the 8 AM daily reminder."""
+    job_daily_reminder()
     return {"triggered": True}
 
 

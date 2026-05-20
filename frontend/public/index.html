@@ -203,6 +203,18 @@
     }
     .topbar .brand { margin: 0; font-size: 20px; }
     .topbar-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+    .top-focus-timer {
+      display: none;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--mist);
+      color: var(--ink);
+      min-height: 34px;
+      padding: 6px 10px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .top-focus-timer.show { display: inline-flex; align-items: center; gap: 6px; }
     .clock { color: var(--ink); font-weight: 800; white-space: nowrap; }
     .avatar {
       width: 34px;
@@ -784,7 +796,7 @@
   <div id="app" class="hidden">
     <header class="topbar">
       <div class="brand"><span class="brand-mark"><img src="icons/ascetic-logo.svg" alt="" /></span><span>Ascetic</span></div>
-      <div class="topbar-meta"><span id="today-date"></span><span class="clock" id="live-clock"></span><div class="avatar" id="top-avatar">A</div></div>
+      <div class="topbar-meta"><button class="top-focus-timer" id="top-focus-timer" type="button">25:00</button><span id="today-date"></span><span class="clock" id="live-clock"></span><div class="avatar" id="top-avatar">A</div></div>
     </header>
 
     <div class="offline" id="offline-banner">Offline mode is active. Cached profile and local logs remain available.</div>
@@ -958,7 +970,7 @@
               <div class="switch-row"><span>Push notifications</span><label class="switch"><input id="pref-push" type="checkbox" /><span class="slider"></span></label></div>
               <div class="switch-row"><span>Notification sounds</span><label class="switch"><input id="pref-sound" type="checkbox" /><span class="slider"></span></label></div>
               <div class="switch-row"><span>Vibration feedback</span><label class="switch"><input id="pref-vibrate" type="checkbox" /><span class="slider"></span></label></div>
-              <div class="field" style="margin-top:16px"><label for="pref-reminder">Nightly reminder</label><input id="pref-reminder" type="time" value="22:00" /></div>
+              <div class="field" style="margin-top:16px"><label for="pref-reminder">Daily reminder</label><input id="pref-reminder" type="time" value="08:00" /></div>
               <p class="desc">The app checks reminder timing while open and tracks a 55-minute reset interval locally.</p>
             </div>
           </div>
@@ -1099,6 +1111,7 @@
       orderBy,
       limit,
       serverTimestamp,
+      getDoc,
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -1136,6 +1149,7 @@
       logs: "ascetic_logs",
       checklist: "ascetic_detox_checklist",
       checklistDone: "ascetic_detox_checklist_done",
+      passwordChanges: "ascetic_password_changes",
     };
     const internetMap = { Low: "Poor", Medium: "Average", High: "Good" };
     const tiers = {
@@ -1163,6 +1177,8 @@
     ];
     const hourMetricIds = metricDefs.filter(([id]) => id !== "caffeine").map(([id]) => id);
     const POMODORO_TOTAL = 25 * 60;
+    const PASSWORD_CHANGE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+    const PASSWORD_MONTHLY_LIMIT = 3;
     const detoxTasks = [
       "Clear your desk",
       "Write the next study task on paper",
@@ -1199,7 +1215,7 @@
       "Set a pleasant but non-distracting background if needed",
       "Check that your room temperature is comfortable",
     ];
-    const defaultPrefs = { push: false, sound: false, vibrate: false, reminder: "22:00" };
+    const defaultPrefs = { push: false, sound: false, vibrate: false, reminder: "08:00" };
     const cachedUser = LS.get(KEYS.user, null);
     let currentUser = cachedUser;
     let profile = loadUserValue(KEYS.profile, defaultProfile(cachedUser));
@@ -1378,7 +1394,56 @@
 
     function validatePassword(password) {
       if (password.length < 6) return "Password must be at least 6 characters.";
+      if (password.length > 14) return "Password must be at most 14 characters.";
+      if (!/^[A-Za-z0-9.]+$/.test(password)) return "Password can only contain letters, numbers, and one period.";
+      if ((password.match(/\./g) || []).length > 1) return "Password can contain only one period.";
+      if (!/^[A-Za-z]/.test(password)) return "Password must start with a letter.";
+      if (/^\d+$/.test(password)) return "Password cannot contain only numbers.";
+      if (/^[.]+$/.test(password)) return "Password cannot contain only special characters.";
+
+      const lower = password.toLowerCase();
+      const compact = lower.replace(/\./g, "");
+      const blockedWords = [
+        "password", "passcode", "admin", "admin123", "welcome", "qwerty",
+        "letmein", "student", "user", "ascetic", "google", "gmail",
+        "firebase", "render", "login", "account",
+      ];
+      if (blockedWords.some((word) => compact.includes(word))) {
+        return "Password cannot contain common, dictionary, or Ascetic-related words.";
+      }
+      if (hasRepeatedCharacters(compact) || hasRepeatedPattern(compact) || hasSequentialCharacters(compact)) {
+        return "Password cannot use repeated or sequential patterns.";
+      }
       return "";
+    }
+
+    function hasRepeatedCharacters(value) {
+      return /(.)\1{2,}/.test(value);
+    }
+
+    function hasRepeatedPattern(value) {
+      if (value.length < 6) return false;
+      for (let size = 1; size <= 3; size += 1) {
+        if (value.length % size === 0) {
+          const chunk = value.slice(0, size);
+          if (chunk.repeat(value.length / size) === value) return true;
+        }
+      }
+      return false;
+    }
+
+    function hasSequentialCharacters(value) {
+      const sequences = ["abcdefghijklmnopqrstuvwxyz", "0123456789"];
+      return sequences.some((sequence) => {
+        const reversed = [...sequence].reverse().join("");
+        for (let size = Math.min(value.length, 6); size >= 4; size -= 1) {
+          for (let index = 0; index <= value.length - size; index += 1) {
+            const chunk = value.slice(index, index + size);
+            if (sequence.includes(chunk) || reversed.includes(chunk)) return true;
+          }
+        }
+        return false;
+      });
     }
 
     function finishAuth(message) {
@@ -1518,6 +1583,9 @@
         mergeAuthProfile(toUserProfile(user));
         bootApp(); // render immediately with local data
         setTimeout(() => syncFromFirestore(), 200); // sync in background
+        if (prefs.push && "Notification" in window && Notification.permission === "granted") {
+          navigator.serviceWorker?.ready.then(saveFCMToken).catch(console.warn);
+        }
       } else if (LS.get(KEYS.user, null)) {
         bootApp();
       } else {
@@ -1592,7 +1660,7 @@
     import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
     const messaging = getMessaging(app);
-    const VAPID_KEY = "YOUR_VAPID_KEY_HERE"; // paste from Firebase Console
+    const VAPID_KEY = "";
 
     async function registerSWandFCM() {
       if (!("serviceWorker" in navigator)) return;
@@ -1611,10 +1679,11 @@
 
     async function saveFCMToken(swRegistration) {
       try {
-        const token = await getToken(messaging, {
-          vapidKey: VAPID_KEY,
+        const options = {
           serviceWorkerRegistration: swRegistration,
-        });
+        };
+        if (VAPID_KEY) options.vapidKey = VAPID_KEY;
+        const token = await getToken(messaging, options);
         if (token && auth.currentUser) {
           // Save token to Firestore under the user's document
           await setDoc(
@@ -1636,8 +1705,7 @@
     // Handle foreground messages (app is open)
     onMessage(messaging, (payload) => {
       const { title, body } = payload.notification || {};
-      showToast(body || title || "Ascetic reminder");
-      if (prefs.vibrate && navigator.vibrate) navigator.vibrate([120, 80, 120]);
+      notify(title || "Ascetic", body || "Time to check in.");
     });
 
     window.addEventListener("load", registerSWandFCM);
@@ -1727,6 +1795,7 @@
         saveUserValue(KEYS.logs, logs);
         closeLogModal();
         renderHome(); renderStats(); renderStreak(); renderChecklist(quickResult.focus_score);
+        maybeStartDetoxTimer(quickResult.focus_score);
         showToast("Log saved.");
 
         // Upgrade with real API result in background
@@ -1740,6 +1809,7 @@
                 { ...entry, serverTs: serverTimestamp() }).catch(console.warn);
             }
             renderHome(); renderStats(); renderStreak(); renderChecklist(apiResult.focus_score);
+            maybeStartDetoxTimer(apiResult.focus_score);
             showToast("AI prediction ready!");
           }).catch(() => {
             // Keep heuristic silently, still save to Firestore
@@ -1942,6 +2012,7 @@
       const last = getActiveLog();
       document.body.classList.remove("tier-1", "tier-2", "tier-3");
       if (!last) {
+        $("detox-panel").style.display = "none";
         $("home-summary").className = "card soft";
         $("home-title").textContent = "No data recorded for yesterday.";
         $("home-message").textContent = "Log yesterday's metrics to reveal today's focus and passing projections.";
@@ -1956,7 +2027,11 @@
         const { result, form } = last;
         const tier = tiers[result.tier];
         document.body.classList.add(`tier-${result.tier}`);
-        $("detox-panel").style.display = result.focus_score <= 30 ? "" : "none";
+        if (result.focus_score <= 30) {
+          if ($("detox-panel").style.display !== "block") $("detox-panel").style.display = "";
+        } else {
+          $("detox-panel").style.display = "none";
+        }
         $("home-summary").className = `card ${tier.className}`;
         $("home-title").textContent = `${tier.label}: ${result.focus_score}% focus`;
         $("home-message").textContent = tier.message;
@@ -2238,6 +2313,59 @@
       return !!auth.currentUser?.providerData?.some((providerInfo) => providerInfo.providerId === "google.com") && !hasPasswordProvider();
     }
 
+    async function loadPasswordChangeHistory() {
+      const localHistory = loadUserValue(KEYS.passwordChanges, []);
+      if (!auth.currentUser) return Array.isArray(localHistory) ? localHistory : [];
+      try {
+        const snap = await getDoc(doc(db, "users", auth.currentUser.uid, "security", "password"));
+        const remoteHistory = snap.exists() ? snap.data().changes : null;
+        return Array.isArray(remoteHistory) ? remoteHistory : (Array.isArray(localHistory) ? localHistory : []);
+      } catch {
+        return Array.isArray(localHistory) ? localHistory : [];
+      }
+    }
+
+    function startOfCurrentMonth() {
+      const month = new Date();
+      month.setDate(1);
+      month.setHours(0, 0, 0, 0);
+      return month.getTime();
+    }
+
+    function formatWaitTime(ms) {
+      const hours = Math.ceil(ms / (60 * 60 * 1000));
+      return hours <= 1 ? "1 hour" : `${hours} hours`;
+    }
+
+    async function assertPasswordChangeAllowed() {
+      const history = (await loadPasswordChangeHistory()).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
+      const now = Date.now();
+      const latest = history[history.length - 1];
+      if (latest && now - latest < PASSWORD_CHANGE_COOLDOWN_MS) {
+        throw new Error(`You changed your password recently. Wait ${formatWaitTime(PASSWORD_CHANGE_COOLDOWN_MS - (now - latest))} before changing it again.`);
+      }
+      const changesThisMonth = history.filter((ts) => ts >= startOfCurrentMonth()).length;
+      if (changesThisMonth >= PASSWORD_MONTHLY_LIMIT) {
+        throw new Error("You can change your password up to three times per month.");
+      }
+      return history;
+    }
+
+    async function recordPasswordChange(history) {
+      const nextHistory = [...history, Date.now()].slice(-12);
+      saveUserValue(KEYS.passwordChanges, nextHistory);
+      if (!auth.currentUser) return;
+      try {
+        await setDoc(
+          doc(db, "users", auth.currentUser.uid, "security", "password"),
+          { changes: nextHistory, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+      } catch (error) {
+        console.warn("[password policy]", error);
+      }
+    }
+
     async function savePasswordIfNeeded() {
       const currentPassword = $("current-password").value;
       const newPassword = $("new-password").value;
@@ -2245,6 +2373,7 @@
       const passwordError = validatePassword(newPassword);
       if (passwordError) throw new Error(passwordError);
       if (!auth.currentUser?.email) throw new Error("Password changes require an active email login.");
+      const passwordHistory = await assertPasswordChangeAllowed();
       const alreadyHasPassword = hasPasswordProvider();
       if (alreadyHasPassword) {
         if (!currentPassword) throw new Error("Enter your current password first.");
@@ -2252,6 +2381,7 @@
         await reauthenticateWithCredential(auth.currentUser, credential);
       }
       await updatePassword(auth.currentUser, newPassword);
+      await recordPasswordChange(passwordHistory);
       $("current-password").value = "";
       $("new-password").value = "";
       return alreadyHasPassword ? " Password updated." : " Ascetic password set.";
@@ -2291,7 +2421,7 @@
       $("pref-push").checked = !!prefs.push;
       $("pref-sound").checked = !!prefs.sound;
       $("pref-vibrate").checked = !!prefs.vibrate;
-      $("pref-reminder").value = prefs.reminder || "22:00";
+      $("pref-reminder").value = prefs.reminder || "08:00";
     }
 
     async function savePrefsRealtime() {
@@ -2299,7 +2429,7 @@
         push: $("pref-push").checked,
         sound: $("pref-sound").checked,
         vibrate: $("pref-vibrate").checked,
-        reminder: $("pref-reminder").value || "22:00",
+        reminder: $("pref-reminder").value || "08:00",
       };
 
       if (prefs.push) {
@@ -2365,14 +2495,15 @@
         const todayKey = localISO(now);
         if (prefs.push && prefs.reminder === hhmm && reminderLastFired !== todayKey) {
           reminderLastFired = todayKey;
-          notify("Ascetic reminder", "Record your daytime metrics before sleeping.");
+          notify("Ascetic daily reminder", "Daily reminder to keep logging yesterday's activities in Ascetic.");
         }
         const active = getActiveLog();
         const interval = detoxRepeatInterval(active?.result?.focus_score);
         if (interval && Date.now() - detoxPromptedAt >= interval) {
           detoxPromptedAt = Date.now();
           openDetoxPanel();
-          notify("Digital Detox Mode", "Step away from screens and complete an offline reset.");
+          startPomodoro();
+          notify("Digital Detox break", "Take a 5-minute break. Step away from screens and reset your focus.");
         }
       }, 30000);
     }
@@ -2380,13 +2511,30 @@
     function detoxRepeatInterval(focusScore) {
       const focus = Number(focusScore);
       if (!Number.isFinite(focus) || focus > 30) return 0;
-      return focus <= 15 ? 4 * 60 * 60 * 1000 : 3 * 60 * 60 * 1000;
+      return 55 * 60 * 1000;
     }
 
     function notify(title, body) {
-      if ("Notification" in window && Notification.permission === "granted") new Notification(title, { body });
+      showDeviceNotification(title, body);
       if (prefs.vibrate && navigator.vibrate) navigator.vibrate([120, 80, 120]);
       if (prefs.sound) showToast(body);
+    }
+
+    function showDeviceNotification(title, body) {
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      const options = {
+        body,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        vibrate: prefs.vibrate ? [120, 80, 120] : undefined,
+      };
+      if (navigator.serviceWorker?.ready) {
+        navigator.serviceWorker.ready
+          .then((registration) => registration.showNotification(title, options))
+          .catch(() => new Notification(title, options));
+      } else {
+        new Notification(title, options);
+      }
     }
 
     function checklistCountForFocus(focusScore) {
@@ -2417,7 +2565,7 @@
       updateDetoxMode(focusScore);
       const count = checklistCountForFocus(focusScore);
       const seed = `${activeStreakDate()}_${count}_${userStorageId()}_${checklistShuffle}`;
-      const done = LS.get(KEYS.checklistDone, {});
+      const done = loadUserValue(KEYS.checklistDone, {});
       const selected = seededChecklistItems(count, seed).map((text) => ({ text, done: !!done[text] }));
       $("detox-checklist").innerHTML = selected.map((item, index) => `
         <label class="check-row">
@@ -2427,9 +2575,9 @@
       `).join("");
       document.querySelectorAll("[data-check]").forEach((input) => {
         input.addEventListener("change", () => {
-          const updated = LS.get(KEYS.checklistDone, {});
+          const updated = loadUserValue(KEYS.checklistDone, {});
           updated[selected[Number(input.dataset.check)].text] = input.checked;
-          LS.set(KEYS.checklistDone, updated);
+          saveUserValue(KEYS.checklistDone, updated);
           updateChecklistCompletion();
         });
       });
@@ -2462,6 +2610,8 @@
 
     function updateTimerUI() {
       $("pomodoro-time").textContent = formatPomodoro(pomodoroLeft);
+      $("top-focus-timer").textContent = `Focus ${formatPomodoro(pomodoroLeft)}`;
+      $("top-focus-timer").classList.toggle("show", !!pomodoroTimer);
       const elapsed = POMODORO_TOTAL - pomodoroLeft;
       $("timer-progress-fill").style.width = `${Math.max(0, Math.min(100, (elapsed / POMODORO_TOTAL) * 100))}%`;
     }
@@ -2481,13 +2631,8 @@
       $("detox-panel").style.display = "block";
     }
 
-    $("pomodoro-toggle").addEventListener("click", () => {
-      if (pomodoroTimer) {
-        clearInterval(pomodoroTimer);
-        pomodoroTimer = null;
-        $("pomodoro-toggle").textContent = "Start";
-        return;
-      }
+    function startPomodoro() {
+      if (pomodoroTimer) return;
       if (pomodoroLeft === 0) pomodoroLeft = POMODORO_TOTAL;
       $("pomodoro-stop").textContent = "Stop";
       $("pomodoro-toggle").textContent = "Pause";
@@ -2499,15 +2644,40 @@
           pomodoroTimer = null;
           $("pomodoro-toggle").textContent = "Done";
           $("pomodoro-stop").textContent = "Restart";
+          updateTimerUI();
           notify("Pomodoro complete", "Your 25-minute focus reset is complete.");
         }
       }, 1000);
+      updateTimerUI();
+    }
+
+    function pausePomodoro() {
+      clearInterval(pomodoroTimer);
+      pomodoroTimer = null;
+      $("pomodoro-toggle").textContent = "Start";
+      updateTimerUI();
+    }
+
+    function maybeStartDetoxTimer(focusScore) {
+      const focus = Number(focusScore);
+      if (!Number.isFinite(focus) || focus > 30) return;
+      openDetoxPanel();
+      startPomodoro();
+    }
+
+    $("pomodoro-toggle").addEventListener("click", () => {
+      if (pomodoroTimer) {
+        pausePomodoro();
+        return;
+      }
+      startPomodoro();
     });
     $("pomodoro-stop").addEventListener("click", () => {
       if ($("pomodoro-stop").textContent === "Restart") {
         resetPomodoro();
         return;
       }
+      if (!pomodoroTimer && pomodoroLeft === POMODORO_TOTAL) return;
       clearInterval(pomodoroTimer);
       pomodoroTimer = null;
       pomodoroLeft = 0;
@@ -2515,11 +2685,13 @@
       $("pomodoro-stop").textContent = "Restart";
       updateTimerUI();
     });
+    $("top-focus-timer").addEventListener("click", openDetoxPanel);
     $("streak-focus-btn").addEventListener("click", () => {
       openDetoxPanel();
     });
     $("checklist-shuffle").addEventListener("click", () => {
       checklistShuffle += 1;
+      saveUserValue(KEYS.checklistDone, {});
       renderChecklist();
     });
     $("detox-info").addEventListener("click", () => {
