@@ -1,74 +1,112 @@
-/* Ascetic PWA — Service Worker */
-const CACHE_VERSION = 'ascetic-v1.2';
-const STATIC_CACHE = `${CACHE_VERSION}-static`;
-const API_CACHE    = `${CACHE_VERSION}-api`;
+// ─── Ascetic Service Worker ───────────────────────────────────────────────────
+// Handles: offline caching, FCM push notifications, vibration
 
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
+
+// Must match your firebaseConfig in index.html
+firebase.initializeApp({
+  apiKey: "AIzaSyBBo67fMWRHIbvCptdmo5WrzREMmq1wHbI",
+  authDomain: "ascetic-app-ai.firebaseapp.com",
+  projectId: "ascetic-app-ai",
+  storageBucket: "ascetic-app-ai.firebasestorage.app",
+  messagingSenderId: "660532686250",
+  appId: "1:660532686250:web:9d7d0cc7f37dbfeb4e4fd3"
+});
+
+const messaging = firebase.messaging();
+
+const CACHE_NAME = "ascetic-v2";
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  "/",
+  "/index.html",
+  "/manifest.json",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
 ];
 
-// ── Install: pre-cache static shell ──────────────────────────────────────────
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS))
+// ─── Install: cache static assets ─────────────────────────────────────────────
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
 
-// ── Activate: delete old caches ───────────────────────────────────────────────
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
+// ─── Activate: clean old caches ───────────────────────────────────────────────
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((k) => k.startsWith('ascetic-') && k !== STATIC_CACHE && k !== API_CACHE)
-          .map((k) => caches.delete(k))
-      )
+      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
     )
   );
   self.clients.claim();
 });
 
-// ── Fetch: Network-first for API, Cache-first for static ─────────────────────
-self.addEventListener('fetch', (e) => {
-  const { request } = e;
-  const url = new URL(request.url);
+// ─── Fetch: serve from cache, fallback to network ─────────────────────────────
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+  if (event.request.url.includes("firestore") || event.request.url.includes("googleapis")) return;
 
-  // API calls — network first, fall back to cached response
-  if (url.hostname.includes('onrender.com')) {
-    e.respondWith(
-      fetch(request)
-        .then((res) => {
-          const clone = res.clone();
-          caches.open(API_CACHE).then((c) => c.put(request, clone));
-          return res;
-        })
-        .catch(() => caches.match(request))
-    );
-    return;
+  event.respondWith(
+    caches.match(event.request).then((cached) => cached || fetch(event.request).catch(() => caches.match("/index.html")))
+  );
+});
+
+// ─── Background Push (app is closed) ──────────────────────────────────────────
+// Firebase Messaging handles this automatically via messaging.onBackgroundMessage
+messaging.onBackgroundMessage((payload) => {
+  const { title, body, icon } = payload.notification || {};
+  self.registration.showNotification(title || "Ascetic", {
+    body: body || "Time to check in.",
+    icon: icon || "/icons/icon-192.png",
+    badge: "/icons/icon-72.png",
+    vibrate: [120, 80, 120, 80, 120],
+    data: payload.data || {},
+    actions: [
+      { action: "open", title: "Open App" },
+      { action: "dismiss", title: "Dismiss" },
+    ],
+  });
+});
+
+// ─── Foreground Push (app is open) ────────────────────────────────────────────
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { notification: { title: "Ascetic", body: event.data.text() } };
   }
 
-  // Firebase calls — network only
-  if (url.hostname.includes('firebase') || url.hostname.includes('googleapis')) {
-    e.respondWith(fetch(request));
-    return;
-  }
+  const { title, body, icon } = payload.notification || {};
+  event.waitUntil(
+    self.registration.showNotification(title || "Ascetic", {
+      body: body || "Time to check in.",
+      icon: icon || "/icons/icon-192.png",
+      badge: "/icons/icon-72.png",
+      vibrate: [120, 80, 120, 80, 120],
+      data: payload.data || {},
+    })
+  );
+});
 
-  // Static assets — cache first, then network
-  e.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((res) => {
-        if (res && res.status === 200) {
-          const clone = res.clone();
-          caches.open(STATIC_CACHE).then((c) => c.put(request, clone));
+// ─── Notification Click ────────────────────────────────────────────────────────
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  if (event.action === "dismiss") return;
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // If app is already open, focus it
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          return client.focus();
         }
-        return res;
-      });
+      }
+      // Otherwise open a new window
+      if (clients.openWindow) return clients.openWindow("/");
     })
   );
 });

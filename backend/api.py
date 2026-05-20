@@ -1,6 +1,6 @@
 """
-Ascetic — Digital Distraction vs Academic Performance
-FastAPI Backend API  |  Phase 2
+Ascetic 
+FastAPI Backend API  |  Phase 3 — with FCM Push Notifications
 """
 
 from contextlib import asynccontextmanager
@@ -12,6 +12,12 @@ import pandas as pd
 import numpy as np
 import os
 import warnings
+import json
+from datetime import datetime, timezone, timedelta
+
+import firebase_admin
+from firebase_admin import credentials, firestore, messaging
+from apscheduler.schedulers.background import BackgroundScheduler
 
 warnings.filterwarnings("ignore")
 
@@ -28,6 +34,159 @@ models = {
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# ─── Firebase Admin Setup ─────────────────────────────────────────────────────
+
+firebase_db = None
+
+def init_firebase():
+    """Initialize Firebase Admin SDK using serviceAccount.json or env variable."""
+    global firebase_db
+    try:
+        sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
+        if sa_json:
+            cred = credentials.Certificate(json.loads(sa_json))
+        else:
+            sa_path = os.path.join(BASE_DIR, "serviceAccount.json")
+            if not os.path.exists(sa_path):
+                print("[firebase] No service account found. Push notifications disabled.", flush=True)
+                return
+            cred = credentials.Certificate(sa_path)
+
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(cred)
+
+        firebase_db = firestore.client()
+        print("[firebase] Firebase Admin initialized successfully.", flush=True)
+
+    except Exception as e:
+        print(f"[firebase] Init error: {e}", flush=True)
+
+
+# ─── Push Notification Helpers ────────────────────────────────────────────────
+
+def get_today_manila() -> str:
+    """Return today's date in Asia/Manila time as YYYY-MM-DD."""
+    manila = timezone(timedelta(hours=8))
+    return datetime.now(manila).strftime("%Y-%m-%d")
+
+
+def send_push_to_user(uid: str, title: str, body: str):
+    """Send a push notification to all FCM tokens for a user."""
+    if not firebase_db:
+        return
+    try:
+        tokens_snap = list(
+            firebase_db.collection("users").doc(uid).collection("tokens").stream()
+        )
+        tokens = [d.to_dict().get("token") for d in tokens_snap]
+        tokens = [t for t in tokens if t]
+        if not tokens:
+            return
+
+        message = messaging.MulticastMessage(
+            notification=messaging.Notification(title=title, body=body),
+            webpush=messaging.WebpushConfig(
+                notification=messaging.WebpushNotification(
+                    title=title,
+                    body=body,
+                    icon="/icons/icon-192.png",
+                    vibrate=[120, 80, 120, 80, 120],
+                    actions=[
+                        messaging.WebpushNotificationAction(action="open",    title="Open App"),
+                        messaging.WebpushNotificationAction(action="dismiss", title="Dismiss"),
+                    ],
+                ),
+            ),
+            tokens=tokens,
+        )
+
+        response = messaging.send_each_for_multicast(message)
+        print(
+            f"[push] uid={uid} success={response.success_count} failed={response.failure_count}",
+            flush=True,
+        )
+
+        # Remove stale tokens
+        for i, resp in enumerate(response.responses):
+            if not resp.success and i < len(tokens_snap):
+                err = str(resp.exception or "")
+                if "not-registered" in err or "invalid-argument" in err:
+                    tokens_snap[i].reference.delete()
+                    print(f"[push] Removed stale token for uid={uid}", flush=True)
+
+    except Exception as e:
+        print(f"[push] Error for uid={uid}: {e}", flush=True)
+
+
+# ─── Scheduled Jobs ───────────────────────────────────────────────────────────
+
+def job_nightly_reminder():
+    """
+    Runs at 10:00 PM Manila time.
+    Sends a reminder to users who have not logged today,
+    and a congratulation to those who have.
+    """
+    if not firebase_db:
+        print("[scheduler] Firebase not ready. Skipping nightly reminder.", flush=True)
+        return
+
+    today = get_today_manila()
+    print(f"[scheduler] Nightly reminder — date={today}", flush=True)
+
+    try:
+        for user_doc in firebase_db.collection("users").stream():
+            uid = user_doc.id
+            log_ref = (
+                firebase_db.collection("users").doc(uid)
+                .collection("logs").document(today).get()
+            )
+            if log_ref.exists:
+                title = "Great work today!"
+                body  = "You've logged your habits. Keep the streak alive tomorrow — consistency is everything."
+            else:
+                title = "Ascetic Reminder"
+                body  = "You haven't logged today yet. Record your habits before sleeping to protect your streak."
+
+            send_push_to_user(uid, title, body)
+
+    except Exception as e:
+        print(f"[scheduler] Nightly reminder error: {e}", flush=True)
+
+
+def job_cognitive_reset():
+    """
+    Runs every 55 minutes. Only fires during study hours (8 AM – 10 PM Manila).
+    """
+    if not firebase_db:
+        return
+
+    hour = datetime.now(timezone(timedelta(hours=8))).hour
+    if not (8 <= hour < 22):
+        return
+
+    print("[scheduler] Cognitive reset reminder firing.", flush=True)
+
+    try:
+        for user_doc in firebase_db.collection("users").stream():
+            send_push_to_user(
+                user_doc.id,
+                "Cognitive Reset",
+                "Take a 5-minute active break. Stand up, stretch, and step away from screens.",
+            )
+    except Exception as e:
+        print(f"[scheduler] Cognitive reset error: {e}", flush=True)
+
+
+def start_scheduler() -> BackgroundScheduler:
+    scheduler = BackgroundScheduler(timezone="Asia/Manila")
+    scheduler.add_job(job_nightly_reminder, "cron",     hour=22, minute=0, id="nightly_reminder")
+    scheduler.add_job(job_cognitive_reset,  "interval", minutes=55,        id="cognitive_reset")
+    scheduler.start()
+    print("[scheduler] Started — nightly: 22:00 | reset: every 55 min", flush=True)
+    return scheduler
+
+
+# ─── Model Loader ─────────────────────────────────────────────────────────────
 
 def load_models():
     """Load all .pkl files. Called once at startup."""
@@ -52,17 +211,23 @@ def load_models():
 
     except Exception as e:
         models["error"] = str(e)
-        # Log the error but DO NOT raise — let the server stay alive
         print(f"[startup] MODEL LOAD ERROR: {e}", flush=True)
 
 
-# ─── Lifespan (replaces deprecated @app.on_event) ────────────────────────────
+# ─── Lifespan ─────────────────────────────────────────────────────────────────
+
+_scheduler = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    load_models()   # runs once when server starts
-    yield           # server is live here
-    # (cleanup on shutdown, if needed)
+    global _scheduler
+    load_models()
+    init_firebase()
+    _scheduler = start_scheduler()
+    yield
+    if _scheduler:
+        _scheduler.shutdown(wait=False)
+        print("[scheduler] Stopped.", flush=True)
 
 
 # ─── App Setup ────────────────────────────────────────────────────────────────
@@ -70,28 +235,23 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Ascetic API",
     description="ML-powered focus score & exam grade predictor for the Ascetic PWA.",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # Restrict to your Vercel/Netlify URL after deployment
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Ordinal mapping for motivation_level
 MOTIVATION_MAP = {"Low": 0, "Medium": 1, "High": 2}
 CATEGORY_ALIASES = {
     "internet_quality": {
-        "Low": "Poor",
-        "Medium": "Average",
-        "High": "Good",
-        "Poor": "Low",
-        "Average": "Medium",
-        "Good": "High",
+        "Low": "Poor", "Medium": "Average", "High": "Good",
+        "Poor": "Low", "Average": "Medium", "Good": "High",
     }
 }
 
@@ -168,18 +328,15 @@ VALID_OPTIONS = {
 def coerce_category(field: str, value: str) -> str:
     """Use the value expected by the fitted LabelEncoder when aliases exist."""
     encoders = models.get("label_encoders") or {}
-    encoder = encoders.get(field)
+    encoder  = encoders.get(field)
     if encoder is None:
         return value
-
     classes = set(str(c) for c in getattr(encoder, "classes_", []))
     if value in classes:
         return value
-
     alias = CATEGORY_ALIASES.get(field, {}).get(value)
     if alias in classes:
         return alias
-
     return value
 
 
@@ -204,10 +361,10 @@ def encode_input(data: PredictRequest) -> pd.DataFrame:
         "exercise_hours":                 data.exercise_hours,
         "caffeine_intake_cups":           data.caffeine_intake_cups,
         "age":                            data.age,
-        "gender":                         coerce_category("gender", data.gender),
-        "internet_quality":               coerce_category("internet_quality", data.internet_quality),
-        "motivation_level":               coerce_category("motivation_level", data.motivation_level),
-        "mental_health_status":           coerce_category("mental_health_status", data.mental_health_status),
+        "gender":                         coerce_category("gender",                data.gender),
+        "internet_quality":               coerce_category("internet_quality",       data.internet_quality),
+        "motivation_level":               coerce_category("motivation_level",       data.motivation_level),
+        "mental_health_status":           coerce_category("mental_health_status",   data.mental_health_status),
         "parent_education_level":         coerce_category("parent_education_level", data.parent_education_level),
     }
 
@@ -220,6 +377,7 @@ def encode_input(data: PredictRequest) -> pd.DataFrame:
 
     if "motivation_level" not in encoded_cols:
         df["motivation_level"] = df["motivation_level"].map(MOTIVATION_MAP)
+
     df = df[models["feature_cols"]]
     return df
 
@@ -253,21 +411,15 @@ def build_nudge(focus_score: float, exam_score: float, data: PredictRequest) -> 
 
 def heuristic_prediction(data: PredictRequest, reason: str | None = None) -> PredictResponse:
     """Deterministic fallback used when hosted model artifacts are unavailable."""
-    distraction_hours = (
-        data.social_media_hours
-        + data.streaming_hours
-        + data.gaming_hours
-    )
-    recovery_score = data.sleep_hours * 4 + data.exercise_hours * 5
+    distraction_hours = data.social_media_hours + data.streaming_hours + data.gaming_hours
+    recovery_score    = data.sleep_hours * 4 + data.exercise_hours * 5
     focus_score = round(float(np.clip(
         42 + data.study_hours_per_day * 9 + recovery_score - distraction_hours * 6,
-        0.0,
-        100.0,
+        0.0, 100.0,
     )), 1)
     exam_score = round(float(np.clip(
         focus_score * 0.78 + data.study_hours_per_day * 4 + 8,
-        0.0,
-        100.0,
+        0.0, 100.0,
     )), 1)
 
     if focus_score <= 30:
@@ -297,11 +449,12 @@ def heuristic_prediction(data: PredictRequest, reason: str | None = None) -> Pre
 @app.get("/", tags=["Health"])
 def root():
     return {
-        "status": "online",
-        "app": "Ascetic API",
-        "version": "1.0.0",
+        "status":        "online",
+        "app":           "Ascetic API",
+        "version":       "2.0.0",
         "models_loaded": models["loaded"],
-        "docs": "/docs",
+        "firebase_ready": firebase_db is not None,
+        "docs":          "/docs",
     }
 
 
@@ -312,7 +465,27 @@ def health():
             status_code=503,
             detail=f"Models not loaded. Error: {models['error']}",
         )
-    return {"status": "healthy", "models_loaded": True}
+    return {
+        "status":        "healthy",
+        "models_loaded": True,
+        "firebase_ready": firebase_db is not None,
+    }
+
+
+@app.post("/notify/test", tags=["Notifications"])
+def test_notify(uid: str):
+    """Send a test push to a specific user. Use to verify FCM is working."""
+    if not firebase_db:
+        raise HTTPException(status_code=503, detail="Firebase not initialized.")
+    send_push_to_user(uid, "Test Notification", "Ascetic push notifications are working!")
+    return {"sent": True, "uid": uid}
+
+
+@app.post("/notify/nightly", tags=["Notifications"])
+def trigger_nightly():
+    """Manually trigger the nightly reminder. Use to test without waiting for 22:00."""
+    job_nightly_reminder()
+    return {"triggered": True}
 
 
 @app.post("/predict", response_model=PredictResponse, tags=["Prediction"])
@@ -321,6 +494,7 @@ def predict(payload: PredictRequest):
     POST /predict
 
     Returns focus_score, exam_score, tier, tier_label, and a nudge message.
+    Falls back to heuristic if models are not loaded.
     """
     if not models["loaded"]:
         return heuristic_prediction(
