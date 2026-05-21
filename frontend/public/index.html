@@ -1587,6 +1587,9 @@
 
     function friendlyAuthError(error) {
       const code = error?.code || "";
+      const message = error?.message || "";
+      if (code.includes("disallowed-useragent") || message.includes("disallowed_useragent")) return "Google sign-in is blocked in this browser. Open the app in Safari instead.";
+      if (code.includes("missing-initial-state") || code.includes("null-user")) return "Sign-in was interrupted. Please try again in Safari.";
       if (code.includes("unauthorized-domain")) return "This domain is not authorized in Firebase Auth. Add your local/deployed domain in Firebase Console > Authentication > Settings.";
       if (code.includes("popup-blocked")) return "The popup was blocked. Redirect sign-in is starting instead.";
       if (code.includes("popup-closed")) return "The Google sign-in window was closed before completion.";
@@ -1595,7 +1598,7 @@
       if (code.includes("invalid-email")) return "Enter a valid email address.";
       if (code.includes("email-already-in-use")) return "That email is already registered in Firebase. Sign in with Google, then set or update your Ascetic password from Profile.";
       if (code.includes("operation-not-allowed")) return "This sign-in method is not enabled in Firebase Authentication.";
-      return error?.message || "Authentication could not be completed.";
+      return message || "Authentication could not be completed.";
     }
 
     function validatePassword(password) {
@@ -1687,13 +1690,38 @@
       saveUserValue(KEYS.prefs, prefs);
     }
 
+    function isInAppBrowser() {
+      const ua = navigator.userAgent || "";
+      return /FBAN|FBAV|Instagram|Messenger|Line|WeChat|MicroMessenger|Twitter|Snapchat/i.test(ua);
+    }
+
+    function isIOS() {
+      return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+
     $("google-signin").addEventListener("click", async () => {
       const button = $("google-signin");
+
+      // Block in-app browsers — Google rejects them
+      if (isInAppBrowser()) {
+        showAuthStatus(
+          'Google sign-in is not available inside Messenger or other apps. ' +
+          'Please open this link in Safari: tap the ••• menu → "Open in Safari", then sign in.'
+        );
+        return;
+      }
+
       try {
         clearAuthStatus();
         button.disabled = true;
-        button.dataset.originalText = button.textContent.trim();
         button.lastChild.textContent = " Opening Google...";
+
+        // iOS Safari works better with redirect than popup
+        if (isIOS()) {
+          await signInWithRedirect(auth, provider);
+          return;
+        }
+
         const credential = await signInWithPopup(auth, provider);
         mergeAuthProfile(toUserProfile(credential.user));
         finishAuth("Google sign-in complete.");
@@ -1736,7 +1764,12 @@
           finishAuth("Google sign-in complete.");
         }
       })
-      .catch((error) => showAuthStatus(friendlyAuthError(error)));
+      .catch((error) => {
+        const code = error?.code || "";
+        // Ignore missing state error — happens when user navigates away during redirect
+        if (code.includes("missing-initial-state") || code.includes("null-user")) return;
+        showAuthStatus(friendlyAuthError(error));
+      });
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
