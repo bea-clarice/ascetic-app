@@ -130,31 +130,6 @@
     }
     .auth-panel h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.1; letter-spacing: -.03em; }
     .auth-panel > p { margin: 0 0 20px; color: var(--muted); line-height: 1.55; }
-    .auth-tabs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px;
-      margin: 16px 0;
-      padding: 4px;
-      background: var(--mist);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-    }
-    .auth-tab {
-      border: 0;
-      border-radius: 12px;
-      background: transparent;
-      color: var(--muted);
-      min-height: 40px;
-      font-weight: 700;
-      font-size: 13px;
-      transition: background .15s, color .15s, box-shadow .15s;
-    }
-    .auth-tab.active {
-      background: var(--white);
-      color: var(--ink);
-      box-shadow: 0 2px 12px rgba(38,82,22,.12);
-    }
     .auth-form { display: none; }
     .auth-form.active { display: block; }
     .auth-form .field { margin-bottom: 12px; }
@@ -958,7 +933,7 @@
     <div class="auth-center">
       <div class="auth-panel">
         <h1>Welcome back.</h1>
-        <p>Use Google, or log in with an Ascetic password you created.</p>
+        <p>Sign in with Google, or log in with an Ascetic password you created from Profile.</p>
         <button class="google-btn" id="google-signin">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path fill="#FFAAB8" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -969,12 +944,13 @@
           Sign in with Google
         </button>
 
-        <div class="auth-tabs" role="tablist" aria-label="Email authentication">
-          <button class="auth-tab active" type="button" data-auth-tab="login">Login</button>
-          <button class="auth-tab" type="button" data-auth-tab="signup">Sign up</button>
+        <div style="display:flex;align-items:center;gap:10px;margin:18px 0 4px;">
+          <div style="flex:1;height:1px;background:var(--line);"></div>
+          <span style="color:var(--muted);font-size:12px;font-weight:700;">or</span>
+          <div style="flex:1;height:1px;background:var(--line);"></div>
         </div>
-
         <form class="auth-form active" id="login-form">
+
           <div class="field">
             <label for="login-email">Email</label>
             <input id="login-email" type="email" autocomplete="email" required />
@@ -984,28 +960,6 @@
             <input id="login-password" type="password" autocomplete="current-password" required />
           </div>
           <button class="primary-btn" id="login-submit" type="submit">Login</button>
-        </form>
-
-        <form class="auth-form" id="signup-form" novalidate>
-          <div class="inline-fields">
-            <div class="field">
-              <label for="signup-first">First Name</label>
-              <input id="signup-first" autocomplete="given-name" pattern="[A-Za-z]{3,}" autocapitalize="words" required />
-            </div>
-            <div class="field">
-              <label for="signup-last">Last Name</label>
-              <input id="signup-last" autocomplete="family-name" pattern="[A-Za-z]{3,}" autocapitalize="words" required />
-            </div>
-          </div>
-          <div class="field">
-            <label for="signup-email">Email</label>
-            <input id="signup-email" type="email" autocomplete="email" required />
-          </div>
-          <div class="field">
-            <label for="signup-password">Password</label>
-            <input id="signup-password" type="password" autocomplete="new-password" required />
-          </div>
-          <button class="primary-btn" id="signup-submit" type="submit">Sign up</button>
         </form>
 
         <div class="auth-status" id="auth-status" role="status" aria-live="polite"></div>
@@ -1343,8 +1297,6 @@
       signInWithRedirect,
       getRedirectResult,
       signInWithEmailAndPassword,
-      createUserWithEmailAndPassword,
-      fetchSignInMethodsForEmail,
       updateProfile,
       EmailAuthProvider,
       reauthenticateWithCredential,
@@ -1671,45 +1623,6 @@
       return "";
     }
 
-    function validateSignupName(label, value) {
-      const name = value.trim();
-      if (name.length < 3) return `${label} must be at least 3 letters.`;
-      if (!/^[A-Za-z]+$/.test(name)) return `${label} must contain letters only. Numbers and special characters are not accepted.`;
-      if (!/^[A-Z]/.test(name)) return `${label} must start with a capital letter.`;
-
-      const compact = name.toLowerCase();
-      const blockedWords = [
-        "password", "passcode", "admin", "administrator", "welcome", "onetwothree",
-        "qwerty", "letmein", "student", "teacher", "user", "account", "login",
-        "ascetic", "google", "gmail", "firebase", "render",
-      ];
-      if (blockedWords.some((word) => compact.includes(word))) {
-        return `${label} cannot use dictionary, login, or Ascetic-related words.`;
-      }
-      if (hasRepeatedCharacters(compact) || hasRepeatedPattern(compact) || hasSequentialCharacters(compact)) {
-        return `${label} cannot use repeated or sequential characters.`;
-      }
-      return "";
-    }
-
-    function validateSignupNames(firstName, lastName) {
-      return validateSignupName("First name", firstName) || validateSignupName("Last name", lastName);
-    }
-
-    function validateEmailFormat(email) {
-      const input = $("signup-email");
-      input.value = email;
-      if (!email || !input.checkValidity()) return "Enter a valid email address.";
-      return "";
-    }
-
-    async function assertGoogleEmailKnown(email) {
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-      if (!methods.includes("google.com")) {
-        throw new Error("Use an email that Firebase already recognizes from Google sign-in. Sign in with Google first, then set an Ascetic password from Profile.");
-      }
-    }
-
     function hasRepeatedCharacters(value) {
       return /(.)\1{2,}/.test(value);
     }
@@ -1774,16 +1687,6 @@
       saveUserValue(KEYS.prefs, prefs);
     }
 
-    document.querySelectorAll("[data-auth-tab]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const target = button.dataset.authTab;
-        clearAuthStatus();
-        document.querySelectorAll("[data-auth-tab]").forEach((tab) => tab.classList.toggle("active", tab === button));
-        $("login-form").classList.toggle("active", target === "login");
-        $("signup-form").classList.toggle("active", target === "signup");
-      });
-    });
-
     $("google-signin").addEventListener("click", async () => {
       const button = $("google-signin");
       try {
@@ -1823,53 +1726,6 @@
       } finally {
         button.disabled = false;
         button.textContent = "Login";
-      }
-    });
-
-    $("signup-form").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      clearAuthStatus();
-      const firstName = $("signup-first").value.trim();
-      const lastName = $("signup-last").value.trim();
-      const email = $("signup-email").value.trim();
-      const password = $("signup-password").value;
-      const nameError = validateSignupNames(firstName, lastName);
-      if (nameError) {
-        showAuthStatus(nameError);
-        return;
-      }
-      const emailError = validateEmailFormat(email);
-      if (emailError) {
-        showAuthStatus(emailError);
-        return;
-      }
-      const passwordError = validatePassword(password);
-      if (passwordError) {
-        showAuthStatus(passwordError);
-        return;
-      }
-
-      const button = $("signup-submit");
-      button.disabled = true;
-      button.textContent = "Creating account...";
-      try {
-        await assertGoogleEmailKnown(email);
-        const credential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(credential.user, { displayName: `${firstName} ${lastName}`.trim() });
-        const userProfile = {
-          uid: credential.user.uid,
-          firstName,
-          lastName,
-          email,
-          photoURL: "",
-        };
-        mergeAuthProfile(userProfile);
-        finishAuth("Account created.");
-      } catch (error) {
-        showAuthStatus(friendlyAuthError(error));
-      } finally {
-        button.disabled = false;
-        button.textContent = "Sign up";
       }
     });
 
