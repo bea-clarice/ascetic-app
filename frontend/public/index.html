@@ -986,15 +986,15 @@
           <button class="primary-btn" id="login-submit" type="submit">Login</button>
         </form>
 
-        <form class="auth-form" id="signup-form">
+        <form class="auth-form" id="signup-form" novalidate>
           <div class="inline-fields">
             <div class="field">
               <label for="signup-first">First Name</label>
-              <input id="signup-first" autocomplete="given-name" required />
+              <input id="signup-first" autocomplete="given-name" pattern="[A-Za-z]{3,}" autocapitalize="words" required />
             </div>
             <div class="field">
               <label for="signup-last">Last Name</label>
-              <input id="signup-last" autocomplete="family-name" required />
+              <input id="signup-last" autocomplete="family-name" pattern="[A-Za-z]{3,}" autocapitalize="words" required />
             </div>
           </div>
           <div class="field">
@@ -1344,6 +1344,7 @@
       getRedirectResult,
       signInWithEmailAndPassword,
       createUserWithEmailAndPassword,
+      fetchSignInMethodsForEmail,
       updateProfile,
       EmailAuthProvider,
       reauthenticateWithCredential,
@@ -1639,14 +1640,15 @@
       if (code.includes("popup-closed")) return "The Google sign-in window was closed before completion.";
       if (code.includes("invalid-credential") || code.includes("wrong-password")) return "Email/password sign-in was not accepted. If this email was first connected with Google, sign in with Google and set an Ascetic password in Profile.";
       if (code.includes("user-not-found")) return "No account exists for that email yet.";
-      if (code.includes("email-already-in-use")) return "That email is already registered. Use Login instead.";
+      if (code.includes("invalid-email")) return "Enter a valid email address.";
+      if (code.includes("email-already-in-use")) return "That email is already registered in Firebase. Sign in with Google, then set or update your Ascetic password from Profile.";
       if (code.includes("operation-not-allowed")) return "This sign-in method is not enabled in Firebase Authentication.";
       return error?.message || "Authentication could not be completed.";
     }
 
     function validatePassword(password) {
-      if (password.length < 6) return "Password must be at least 6 characters.";
-      if (password.length > 14) return "Password must be at most 14 characters.";
+      if (!password || password.length < 6) return "Password must be at least 6 characters.";
+      if (password.length > 18) return "Password must be at most 18 characters.";
       if (!/^[A-Za-z0-9.]+$/.test(password)) return "Password can only contain letters, numbers, and one period.";
       if ((password.match(/\./g) || []).length > 1) return "Password can contain only one period.";
       if (!/^[A-Za-z]/.test(password)) return "Password must start with a letter.";
@@ -1667,6 +1669,45 @@
         return "Password cannot use repeated or sequential patterns.";
       }
       return "";
+    }
+
+    function validateSignupName(label, value) {
+      const name = value.trim();
+      if (name.length < 3) return `${label} must be at least 3 letters.`;
+      if (!/^[A-Za-z]+$/.test(name)) return `${label} must contain letters only. Numbers and special characters are not accepted.`;
+      if (!/^[A-Z]/.test(name)) return `${label} must start with a capital letter.`;
+
+      const compact = name.toLowerCase();
+      const blockedWords = [
+        "password", "passcode", "admin", "administrator", "welcome", "onetwothree",
+        "qwerty", "letmein", "student", "teacher", "user", "account", "login",
+        "ascetic", "google", "gmail", "firebase", "render",
+      ];
+      if (blockedWords.some((word) => compact.includes(word))) {
+        return `${label} cannot use dictionary, login, or Ascetic-related words.`;
+      }
+      if (hasRepeatedCharacters(compact) || hasRepeatedPattern(compact) || hasSequentialCharacters(compact)) {
+        return `${label} cannot use repeated or sequential characters.`;
+      }
+      return "";
+    }
+
+    function validateSignupNames(firstName, lastName) {
+      return validateSignupName("First name", firstName) || validateSignupName("Last name", lastName);
+    }
+
+    function validateEmailFormat(email) {
+      const input = $("signup-email");
+      input.value = email;
+      if (!email || !input.checkValidity()) return "Enter a valid email address.";
+      return "";
+    }
+
+    async function assertGoogleEmailKnown(email) {
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      if (!methods.includes("google.com")) {
+        throw new Error("Use an email that Firebase already recognizes from Google sign-in. Sign in with Google first, then set an Ascetic password from Profile.");
+      }
     }
 
     function hasRepeatedCharacters(value) {
@@ -1792,6 +1833,16 @@
       const lastName = $("signup-last").value.trim();
       const email = $("signup-email").value.trim();
       const password = $("signup-password").value;
+      const nameError = validateSignupNames(firstName, lastName);
+      if (nameError) {
+        showAuthStatus(nameError);
+        return;
+      }
+      const emailError = validateEmailFormat(email);
+      if (emailError) {
+        showAuthStatus(emailError);
+        return;
+      }
       const passwordError = validatePassword(password);
       if (passwordError) {
         showAuthStatus(passwordError);
@@ -1802,6 +1853,7 @@
       button.disabled = true;
       button.textContent = "Creating account...";
       try {
+        await assertGoogleEmailKnown(email);
         const credential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(credential.user, { displayName: `${firstName} ${lastName}`.trim() });
         const userProfile = {
@@ -2689,16 +2741,57 @@
       const currentPassword = $("current-password").value;
       const newPassword = $("new-password").value;
       if (!newPassword) return "";
+
       const passwordError = validatePassword(newPassword);
       if (passwordError) throw new Error(passwordError);
+
       if (!auth.currentUser?.email) throw new Error("Password changes require an active email login.");
-      const passwordHistory = await assertPasswordChangeAllowed();
+
+      // Block Google-only users from setting a password this way
+      const isGoogleOnly = shouldAdviseAsceticPassword();
       const alreadyHasPassword = hasPasswordProvider();
+
+      const passwordHistory = await assertPasswordChangeAllowed();
+
       if (alreadyHasPassword) {
         if (!currentPassword) throw new Error("Enter your current password first.");
-        const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
-        await reauthenticateWithCredential(auth.currentUser, credential);
+        try {
+          const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+          await reauthenticateWithCredential(auth.currentUser, credential);
+        } catch (error) {
+          const code = error?.code || "";
+          if (code.includes("invalid-credential") || code.includes("wrong-password")) {
+            throw new Error("Current password is incorrect. Please try again.");
+          }
+          if (code.includes("too-many-requests")) {
+            throw new Error("Too many attempts. Please wait a few minutes and try again.");
+          }
+          if (code.includes("requires-recent-login")) {
+            throw new Error("Session expired. Please log out, log back in, then try again.");
+          }
+          throw new Error(error.message || "Re-authentication failed.");
+        }
+      } else if (isGoogleOnly) {
+        // Google user setting password for first time — no reauthentication needed
+        // Firebase allows linkWithCredential for this case
+        try {
+          const { linkWithCredential } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+          const credential = EmailAuthProvider.credential(auth.currentUser.email, newPassword);
+          await linkWithCredential(auth.currentUser, credential);
+          await recordPasswordChange(passwordHistory);
+          $("current-password").value = "";
+          $("new-password").value = "";
+          $("google-password-advice").classList.add("hidden");
+          return " Ascetic password set. You can now log in with email and password.";
+        } catch (error) {
+          const code = error?.code || "";
+          if (code.includes("already-in-use") || code.includes("provider-already-linked")) {
+            throw new Error("This email already has a password. Enter your current password to change it.");
+          }
+          throw new Error(error.message || "Could not set password.");
+        }
       }
+
       await updatePassword(auth.currentUser, newPassword);
       await recordPasswordChange(passwordHistory);
       $("current-password").value = "";
