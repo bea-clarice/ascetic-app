@@ -8,7 +8,7 @@
 
 export const TIER_ICONS  = { 1: '🚨', 2: '⚠️', 3: '✅' };
 export const TIER_LABELS = { 1: 'Digital Detox', 2: 'Warning', 3: 'Excellent Alignment' };
-export const TIER_COLORS = { 1: 'var(--danger)', 2: 'var(--warn)', 3: 'var(--good)' };
+export const TIER_COLORS = { 1: 'var(--rose)', 2: '#E07A5F', 3: 'var(--green)' };
 
 /**
  * tierBadge(tier) → "<div class='tier-badge tier-N'>…</div>"
@@ -43,9 +43,9 @@ export function animateRing(fillEl, scoreEl, score, tier) {
  */
 export function resetRing(fillEl, scoreEl) {
   fillEl.style.strokeDashoffset = 502;
-  fillEl.style.stroke           = 'var(--border2)';
+  fillEl.style.stroke           = 'var(--line)';
   scoreEl.textContent            = '--';
-  scoreEl.style.color            = 'var(--text)';
+  scoreEl.style.color            = 'var(--muted)';
 }
 
 // ─── Nudge Card ───────────────────────────────────────────────────────────────

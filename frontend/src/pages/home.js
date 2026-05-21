@@ -43,7 +43,7 @@ export function renderHome({ lastResult, logs, domRefs }) {
     resetRing(ringFill, ringScore);
     ringTier.innerHTML  = `
       <div class="tier-badge"
-           style="background:var(--card);color:var(--muted);border:1px solid var(--border)">
+           style="background:var(--mist);color:var(--muted);border:1px solid var(--line)">
         Log data to get your prediction
       </div>`;
     nudgeWrap.innerHTML = welcomeCard();
